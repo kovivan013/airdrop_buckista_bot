@@ -35,7 +35,7 @@ user_router = APIRouter()
 
 @user_router.post("/create_user")
 async def create_user(
-        parameters: UserCreate,
+        parameters: UserCreat,
         request: Request,
         session: AsyncSession = Depends(
             core.create_sa_session
