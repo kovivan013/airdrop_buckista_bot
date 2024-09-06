@@ -212,7 +212,7 @@ class InviteMenu:
 
     invite_friends: str = "Invite friends"
 
-    invite_friends_link: str = "https://t.me/share/url?url=https://t.me/officialBioMatrix_bot?start%3D{}&text=%0A🏆%20Unlimited%20Prize%20Pool%20%0A🔥%20100%25%20Free%20Rewards"
+    invite_friends_link: str = "https://t.me/share/url?url=https://t.me/buckista_bot?start%3D{}&text=%0A🏆%20Unlimited%20Prize%20Pool%20%0A🔥%20100%25%20Free%20Rewards"
 
     @classmethod
     def keyboard(

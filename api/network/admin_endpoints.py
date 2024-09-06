@@ -147,16 +147,6 @@ async def top_referrers(
     return result
 
 
-@admin_router.get("/overview")
-async def overview(
-        request: Request,
-        session: AsyncSession = Depends(
-            core.create_sa_session
-        )
-) -> Union[DataStructure]:
-    pass
-
-
 @admin_router.post("/approve_withdrawal")
 async def approve_withdrawal(
         admin_id: int,

@@ -5,6 +5,11 @@ class AdminStates(StatesGroup):
 
     enter_password = State()
     admin_panel = State()
+    overview = State()
+    user_data = State()
+    lucky_user = State()
+    lucky_amount = State()
+    top_referrers = State()
 
 
 class ReferralStates(StatesGroup):

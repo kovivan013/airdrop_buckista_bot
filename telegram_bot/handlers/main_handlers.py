@@ -1,6 +1,7 @@
 import requests
 from aiogram import Dispatcher
 import aiohttp
+from config import bot
 from aiogram.types import (
     Message,
     CallbackQuery,
@@ -11,6 +12,7 @@ from aiogram.dispatcher.filters import Text
 from states.states import (
     ReferralStates
 )
+from decorators.decorators import private_message, handle_error
 from keyboards.keyboards import (
     DescriptionMenu,
     TasksListMenu,
@@ -26,18 +28,83 @@ from common.schemas import (
     ResponseMessages
 )
 
+@handle_error
+async def home(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await state.finish()
+    await event.message.answer(
+        text=f"🎉 Hello {event.from_user.username}! \n"
+             "==============================\n"
+             "\n"
+             "🚨 Join the *BioMatrix Airdrop* to earn more rewards:\n"
+             "\n"
+             "🔹 *Task Reward*\n"
+             "🔸 Unlimited Prize Pool\n"
+             "🔸 0.3 USDT + 100 POY for using APP\n"
+             "🔸 0.4 USDT for each valid invitation\n"
+             "\n"
+             "🔹 *Lucky Draw*\n"
+             "🔸 2500 USDT Summer Giveaway\n"
+             "🔸 500 participants will be randomly rewarded\n"
+             "\n"
+             "🔹 *Referral Reward*\n"
+             "🔸 The top 30 referrers share 2500 USDT\n"
+             "🔸 1st place: 1000 USDT\n"
+             "🔸 2nd place: 500 USDT\n"
+             "🔸 3rd place: 250 USDT\n"
+             "🔸 4th place: 100 USDT\n"
+             "🔸 5th to 30th place: 50 USDT each\n"
+             "\n"
+             "📅 *End Date*: 30 September 2024\n"
+             "🚀 *Distribution Time*: Up to 7 working days\n"
+             "\n"
+             "==============================\n"
+             "⬇️ **Click BioMatrix Airdrop and explore the tasks available**\n"
+             "⬇️ **Click My Balance to withdraw your rewards at any time**",
+        reply_markup=DescriptionMenu.keyboard(),
+        parse_mode="Markdown"
+    )
 
+@handle_error
 async def start(
         event: Message,
         state: FSMContext
 ) -> None:
-    await state.finish()
     try:
-        referral_id = int(
+        referrer_id = int(
             event.text.split()[1]
         )
+        response = requests.post(
+            url=f"http://127.0.0.1:8000/user/{event.from_user.id}/refer_friend?referrer_id={referrer_id}"
+        )
+        print(response, response.json())
+        if response.json()["status"] != 200:
+            await event.answer(
+                text=response.json()["message"]
+            )
+        else:
+            await bot.send_message(
+                chat_id=referrer_id,
+                text="🎉 New Referral Registered! 🎉\n"
+                     "\n"
+                     "👤 A new user has registered using your referral link.\n"
+                     "\n"
+                     "💸 You received a reward of 0.4 USDT\n"
+            )
+            requests.put(
+                url=f"http://127.0.0.1:8000/user/{referrer_id}/increase_balance?amount=0.4"
+            )
     except:
         pass
+    requests.post(
+        url="http://127.0.0.1:8000/user/create_user",
+        json={
+            "telegram_id": event.from_user.id,
+            "username": event.from_user.username if event.from_user.username else ""
+        }
+    )
     await event.answer(
         text=f"🎉 Hello {event.from_user.username}! \n"
              "==============================\n"
@@ -71,7 +138,7 @@ async def start(
         parse_mode="Markdown"
     )
 
-
+@handle_error
 async def tasks_list(
         event: CallbackQuery,
         state: FSMContext
@@ -87,26 +154,35 @@ async def tasks_list(
         parse_mode="Markdown"
     )
 
-
+@handle_error
 async def user_balance(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
+    response = requests.get(
+        url=f"http://127.0.0.1:8000/user/{event.from_user.id}"
+    ).json()["data"]
+    current_withdrawal = requests.get(
+        url=f"http://127.0.0.1:8000/user/current_withdrawal?withdrawal_id={response['current_withdrawal']}"
+    ).json()
+    total_withdrawals = requests.get(
+        url=f"http://127.0.0.1:8000/user/{event.from_user.id}/total_withdrawals"
+    ).json()["data"]
     await event.message.answer(
-        text="💰 Your Current Balance: 1.6 USDT\n"
+        text=f"💰 Your Current Balance: {response['balance']} USDT\n"
              "\n"
-             "➡️ Withdrawal Request: 1.1 USDT\n"
-             "🤑 Total Withdrawals: 4.3 USDT\n"
+             f"➡️ Withdrawal Request: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
+             f"🤑 Total Withdrawals: {total_withdrawals['total_withdrawals']} USDT\n"
              "\n"
-             "👥 Friends Referred: 17\n"
+             f"👥 Friends Referred: {len(response['referred_friends'])}\n"
              "\n"
              "**Please note that your withdrawal requires the Telegram Wallet to be activated**"
         ,
-        reply_markup=TasksListMenu.keyboard(),
+        reply_markup=HomeMenu.keyboard(),
         parse_mode="Markdown"
     )
 
-
+@handle_error
 async def submit_referral(
         event: CallbackQuery,
         state: FSMContext
@@ -122,7 +198,7 @@ async def submit_referral(
         parse_mode="Markdown"
     )
 
-
+@handle_error
 async def check_referral(
         event: Message,
         state: FSMContext
@@ -155,7 +231,7 @@ async def check_referral(
     )
 
 
-
+@handle_error
 async def web_app_task(
         event: CallbackQuery,
         state: FSMContext
@@ -174,7 +250,7 @@ async def web_app_task(
         parse_mode="Markdown"
     )
 
-
+@handle_error
 async def android_app_task(
         event: CallbackQuery,
         state: FSMContext
@@ -193,7 +269,7 @@ async def android_app_task(
         parse_mode="Markdown"
     )
 
-
+@handle_error
 async def ios_app_task(
         event: CallbackQuery,
         state: FSMContext
@@ -212,22 +288,24 @@ async def ios_app_task(
         parse_mode="Markdown"
     )
 
-
+# @handle_error
 async def invite_friend(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
+    response = requests.get(
+        url=f"http://127.0.0.1:8000/user/{event.from_user.id}"
+    ).json()["data"]
     await event.message.answer(
         text="🎉 Invite your friends to join our bot and earn rewards! When your friends claim the airdrop, you will receive a reward of 0.4 USDT.\n"
              "\n"
              f"🔗 Your Referral Link: https://t.me/officialBioMatrix_bot?start={event.from_user.id}\n"
-             "👥 Friends Referred: 1\n"
+             f"👥 Friends Referred: {len(response['referred_friends'])}\n"
              "\n"
              "Share this link with your friends and watch your balance grow! 🚀\n",
         reply_markup=InviteMenu.keyboard(
             user_id=event.from_user.id
-        ),
-        parse_mode="Markdown"
+        )
     )
 
 
@@ -238,6 +316,13 @@ def register(
     dp.register_message_handler(
         start,
         commands=["start"]
+    )
+    dp.register_callback_query_handler(
+        home,
+        Text(
+            equals=HomeMenu.home_callback
+        ),
+        state=["*"]
     )
     dp.register_callback_query_handler(
         tasks_list,
@@ -271,6 +356,12 @@ def register(
         android_app_task,
         Text(
             equals=TasksListMenu.android_app_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        invite_friend,
+        Text(
+            TasksListMenu.invite_friend_callback
         )
     )
     dp.register_callback_query_handler(

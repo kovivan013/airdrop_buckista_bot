@@ -143,6 +143,35 @@ async def get_balance(
     return result
 
 
+@user_router.get("/current_withdrawal")
+async def get_withdrawal(
+        withdrawal_id: str,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    withdrawal = await session.get(
+        Withdrawals,
+        withdrawal_id
+    )
+
+    if not withdrawal:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Withdrawal not found"
+        )._report()
+
+    await session.close()
+
+    result.data = withdrawal.as_dict()
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+
 @user_router.get("/{telegram_id}/total_withdrawals")
 async def total_withdrawals(
         telegram_id: int,
