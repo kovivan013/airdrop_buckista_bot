@@ -21,11 +21,11 @@ class Settings(BaseSettings):
     @property
     def url(self) -> str:
         return self.uri.format(
-            self.user,
+            "postgres",
             self.password,
             self.host,
             self.port,
-            self.name
+            "postgres"
         )
 
 settings = Settings()

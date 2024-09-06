@@ -15,7 +15,8 @@ from sqlalchemy import (
     String,
     BigInteger,
     JSON,
-    Numeric
+    Numeric,
+    ARRAY
 )
 
 
@@ -42,10 +43,19 @@ class Users(Base):
         JSON,
         nullable=False
     )
-    referred_friends: Mapped[Integer] = mapped_column(
-        Integer,
+    referred_friends: Mapped[ARRAY] = mapped_column(
+        ARRAY(BigInteger),
         nullable=False
     )
+    created_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BaseUser]:
+        return BaseUser().model_validate(
+            self.as_dict()
+        )
 
 
 class Withdrawals(Base):
@@ -76,3 +86,12 @@ class Withdrawals(Base):
         nullable=False,
         default="pending"
     )
+    created_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BaseWithdrawal]:
+        return BaseWithdrawal().model_validate(
+            self.as_dict()
+        )
