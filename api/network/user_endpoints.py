@@ -199,7 +199,7 @@ async def total_withdrawals(
         ).filter(
             Withdrawals.user_id == telegram_id
         ).filter(
-            Withdrawals.status != "pending"
+            Withdrawals.status == "approved"
         )
     )
 

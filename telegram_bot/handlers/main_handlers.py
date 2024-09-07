@@ -1,7 +1,7 @@
 import requests
 from aiogram import Dispatcher
 import aiohttp
-from config import bot
+from config import bot, settings
 from aiogram.types import (
     Message,
     CallbackQuery,
@@ -79,7 +79,6 @@ async def start(
         response = requests.post(
             url=f"http://127.0.0.1:8000/user/{event.from_user.id}/refer_friend?referrer_id={referrer_id}"
         )
-        print(response, response.json())
         if response.json()["status"] != 200:
             await event.answer(
                 text=response.json()["message"]
@@ -178,7 +177,7 @@ async def user_balance(
              "\n"
              "**Please note that your withdrawal requires the Telegram Wallet to be activated**"
         ,
-        reply_markup=HomeMenu.keyboard(),
+        reply_markup=WithdrawMenu.keyboard(),
         parse_mode="Markdown"
     )
 
@@ -288,7 +287,75 @@ async def ios_app_task(
         parse_mode="Markdown"
     )
 
-# @handle_error
+@handle_error
+async def enter_ton_address(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await ReferralStates.withdraw_address.set()
+    response = requests.get(
+        url=f"http://127.0.0.1:8000/user/{event.from_user.id}"
+    ).json()["data"]
+
+    if float(response["balance"]) > 1:
+        current_withdrawal = requests.get(
+            url=f"http://127.0.0.1:8000/user/current_withdrawal?withdrawal_id={response['current_withdrawal']}"
+        ).json()
+        if current_withdrawal["status"] == 200 and current_withdrawal["data"]["status"] in ["approved", "declined"]:
+            return await event.message.answer(
+                text="❌ You cannot submit a new withdrawal request until your latest one has been processed. Thank you for your patience.",
+                reply_markup=HomeMenu.keyboard(),
+                parse_mode="Markdown"
+            )
+        return await event.message.answer(
+            text=f"💵 Withdrawal Amount: {response['balance']} USDT\n"
+                 "\n"
+                 "We only accept USDT-TON address from your Telegram Wallet\n"
+                 "\n"
+                 "Submit your USDT-TON Address\n",
+            reply_markup=HomeMenu.keyboard()
+        )
+
+    await event.message.answer(
+        text="❌ *Minimum withdrawal amount 1 USDT*",
+        reply_markup=HomeMenu.keyboard(),
+        parse_mode="Markdown"
+    )
+
+@handle_error
+async def withdraw_balance(
+        event: Message,
+        state: FSMContext
+) -> None:
+    withdrawal = requests.post(
+        url=f"http://127.0.0.1:8000/user/{event.from_user.id}/withdraw",
+        json={
+            "ton_address": event.text
+        }
+    ).json()["data"]
+    await event.answer(
+        text="✅ *Withdrawal Request Submitted*\n"
+             "\n"
+             "Your withdrawal request has been successfully submitted. 🎉\n"
+             "We will review and process it within *7 business days*. Thank you for your patience! 😊\n",
+        reply_markup=HomeMenu.keyboard(),
+        parse_mode="Markdown"
+    )
+    await bot.send_message(
+        chat_id=settings.ADMINS_CHAT,
+        text="🆕 New Withdrawal Request\n"
+             "\n"
+             f"User ID: {event.from_user.id}\n"
+             f"Username: {'@' + event.from_user.username if event.from_user.username else 'None'}\n"
+             f"TON Wallet Address: {event.text}\n"
+             f"Requested Balance: {withdrawal['amount']} USDT\n",
+        reply_markup=WithdrawMenu.control(
+            withdrawal_id=withdrawal["id"]
+        ),
+        parse_mode="Markdown"
+    )
+
+@handle_error
 async def invite_friend(
         event: CallbackQuery,
         state: FSMContext
@@ -307,7 +374,6 @@ async def invite_friend(
             user_id=event.from_user.id
         )
     )
-
 
 
 def register(
@@ -345,6 +411,16 @@ def register(
     dp.register_message_handler(
         check_referral,
         state=ReferralStates.submit_referral
+    )
+    dp.register_callback_query_handler(
+        enter_ton_address,
+        Text(
+            WithdrawMenu.withdraw_callback
+        )
+    )
+    dp.register_message_handler(
+        withdraw_balance,
+        state=ReferralStates.withdraw_address
     )
     dp.register_callback_query_handler(
         web_app_task,

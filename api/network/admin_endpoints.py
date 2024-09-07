@@ -237,8 +237,15 @@ async def decline_withdrawal(
             message="The withdrawal can't be declined."
         )._report()
 
+    user = await session.get(
+        Users,
+        withdrawal.user_id
+    )
+
     withdrawal.status = "declined"
     withdrawal.admin_id = admin_id
+
+    user.balance = withdrawal.amount
 
     await session.commit()
     await session.close()

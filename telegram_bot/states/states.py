@@ -16,3 +16,4 @@ class ReferralStates(StatesGroup):
 
     submit_referral = State()
     checked_code = State()
+    withdraw_address = State()

@@ -1,5 +1,5 @@
 from aiogram import Dispatcher
-from config import settings
+from config import settings, bot
 from utils import utils
 import requests
 from decorators.decorators import private_message, handle_error
@@ -14,7 +14,8 @@ from states.states import (
 )
 from keyboards.keyboards import (
     HomeMenu,
-    AdminMenu
+    AdminMenu,
+    WithdrawMenu
 )
 
 
@@ -93,22 +94,38 @@ async def enter_user_id(
         parse_mode="Markdown"
     )
 
-@handle_error
+# @handle_error
 async def user_data(
         event: Message,
         state: FSMContext
 ) -> None:
+    response = requests.get(
+        url=f"http://127.0.0.1:8000/user/{event.text}"
+    ).json()
+
+    if response["status"] == 200:
+        current_withdrawal = requests.get(
+            url=f"http://127.0.0.1:8000/user/current_withdrawal?withdrawal_id={response['data']['current_withdrawal']}"
+        ).json()
+        total_withdrawals = requests.get(
+            url=f"http://127.0.0.1:8000/user/{event.text}/total_withdrawals"
+        ).json()["data"]
+        return await event.answer(
+            text="📊 User Data\n"
+                 "\n"
+                 f"UserID: {response['data']['telegram_id']}\n"
+                 f"Username: {'@' + response['data']['username'] if response['data']['username'] else 'None'}\n"
+                 f"Completed Tasks: {len([i for i in response['data']['completed_tasks'].values() if i])} / 1\n"
+                 f"Friends Referred: {len(response['data']['referred_friends'])}\n"
+                 f"Current Balance: {response['data']['balance']} USDT\n"
+                 f"Withdrawal Request: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
+                 f"Total Withdrawals: {total_withdrawals['total_withdrawals']} USDT",
+            reply_markup=HomeMenu.keyboard(),
+        )
+
     await event.answer(
-        text="📊 User Data\n"
-             "\n"
-             "UserID: 5247144609\n"
-             "Username: @marc_ivy\n"
-             "Completed Tasks: 2 / 1\n"
-             "Friends Referred: 8\n"
-             "Current Balance: 0 USDT\n"
-             "Withdrawal Request: 1.6 USDT\n"
-             "Total Withdrawals: 3.5 USDT",
-        reply_markup=HomeMenu.keyboard(),
+        text=response["message"],
+        reply_markup=HomeMenu.keyboard()
     )
 
 @handle_error
@@ -130,10 +147,14 @@ async def lucky_draw_amount(
         state: FSMContext
 ) -> None:
     await AdminStates.lucky_amount.set()
+    async with state.proxy() as data:
+        data["user_id"] = int(
+            event.text
+        )
     await event.answer(
         text="🎰 Lucky Draw\n"
              "\n"
-             "Enter the prize amount for the user with ID 1122236574\n",
+             f"Enter the prize amount for the user with ID {event.text}\n",
         parse_mode="Markdown"
     )
 
@@ -142,11 +163,31 @@ async def lucky_draw(
         event: Message,
         state: FSMContext
 ) -> None:
-    await event.answer(
-        text="✅ The user with ID 1122236574 has successfully received a prize of 200 USDT.\n",
-        reply_markup=HomeMenu.keyboard(),
-        parse_mode='Markdown'
-    )
+    async with state.proxy() as data:
+
+        response = requests.put(
+            url=f"http://127.0.0.1:8000/user/{data['user_id']}/increase_balance?amount={event.text}"
+        ).json()
+
+        if response["status"] == 200:
+
+            await event.answer(
+                text=f"✅ The user with ID {data['user_id']} has successfully received a prize of {event.text} USDT.\n",
+                reply_markup=HomeMenu.keyboard(),
+                parse_mode='Markdown'
+            )
+            return await bot.send_message(
+                chat_id=data['user_id'],
+                text="🎉 *Congratulations!* \n"
+                     "\n"
+                     f"You are fortunate to have won a prize of {event.text} USDT.\n",
+                parse_mode="Markdown"
+            )
+
+        await event.answer(
+            text=response["message"],
+            reply_markup=HomeMenu.keyboard()
+        )
 
 @handle_error
 async def top_referrers(
@@ -154,22 +195,94 @@ async def top_referrers(
         state: FSMContext
 ) -> None:
     await AdminStates.top_referrers.set()
+
+    response = requests.get(
+        url="http://127.0.0.1:8000/admin/top_referrers"
+    ).json()["data"]
+
+    text = ""
+    for i, v in response.items():
+        text += f"{v['telegram_id']} / {'@' + v['username'] if v['username'] else 'None'} / {v['reffered_friends']}\n"
+
     await event.message.answer(
         text="🏆 Top Referrers\n"
              "\n"
              "UserID / Username / Friends Referred\n"
-             "5247144609 / @marc_ivy / 1221\n"
-             "1134578922 / @dddyyuy / 1090\n"
-             "1044448843 / @ttu88er / 890\n"
-             "89456732 / @yyuuud / 764\n"
-             "7777777222 / @hut / 478\n"
-             "4587393445 / @jookertu / 475\n"
-             "294872983 / @77sdy4 / 248\n"
-             "3829238933 / @hhhhhrrrr / 188\n"
-             "3388444555 / @hi_ert / 94\n"
-             "117345565 / @___dddi1 / 17\n",
+             f"{text}",
         reply_markup=HomeMenu.keyboard(),
     )
+
+
+@handle_error
+async def accept_withdraw(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    withdrawal_id = event.data[:36]
+
+    response = requests.post(
+        url=f"http://127.0.0.1:8000/admin/approve_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}"
+    ).json()
+
+    if response["status"] == 200:
+        text = event.message.text[25:]
+
+        await event.message.edit_text(
+            text=f"*✅ Withdrawal Request Approved*\n"
+                 f"{text}",
+            reply_markup={},
+            parse_mode="Markdown"
+        )
+
+        await bot.send_message(
+            chat_id=response["data"]["user_id"],
+            text="✅ *Withdrawal Request Approved*\n"
+                 "\n"
+                 "Hello! Your withdrawal request has been successfully approved.\n"
+                 "\n"
+                 f"Requested Amount: {response['data']['amount']} USDT\n"
+                 "The funds will be transferred to your account shortly.\n"
+                 "\n"
+                 "For further questions, please join our channel.\n",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="Markdown"
+        )
+
+
+@handle_error
+async def decline_withdraw(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    withdrawal_id = event.data[:36]
+
+    response = requests.post(
+        url=f"http://127.0.0.1:8000/admin/decline_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}"
+    ).json()
+
+    if response["status"] == 200:
+        text = event.message.text[25:]
+
+        await event.message.edit_text(
+            text=f"*❌ Withdrawal Request Declined*\n"
+                 f"{text}",
+            reply_markup={},
+            parse_mode="Markdown"
+        )
+
+        await bot.send_message(
+            chat_id=response["data"]["user_id"],
+            text="❌ *Withdrawal Request Declined*\n"
+                 "\n"
+                 "Hello! We regret to inform you that your withdrawal request has been declined.\n"
+                 "\n"
+                 "Please make sure to submit a valid USDT-Ton address provided by Telegram Wallet when applying for a withdrawal.\n"
+                 "\n"
+                 "For further questions, please join our channel.\n",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="Markdown"
+        )
+
 
 def register(
         dp: Dispatcher
@@ -214,6 +327,18 @@ def register(
     dp.register_message_handler(
         lucky_draw,
         state=AdminStates.lucky_amount
+    )
+    dp.register_callback_query_handler(
+        accept_withdraw,
+        Text(
+            endswith=WithdrawMenu.accept_withdraw_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        decline_withdraw,
+        Text(
+            endswith=WithdrawMenu.decline_withdraw_callback
+        )
     )
     dp.register_callback_query_handler(
         top_referrers,

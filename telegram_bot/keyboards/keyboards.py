@@ -236,8 +236,12 @@ class InviteMenu:
 class WithdrawMenu:
 
     withdraw: str = "💸Withdraw"
+    accept_withdraw: str = "Accept"
+    decline_withdraw: str = "Decline"
 
     withdraw_callback: str = "withdraw_callback"
+    accept_withdraw_callback: str = "accept_callback"
+    decline_withdraw_callback: str = "decline_callback"
 
     @classmethod
     def keyboard(cls) -> Union[InlineKeyboardMarkup]:
@@ -251,6 +255,28 @@ class WithdrawMenu:
         )
 
         return keyboard
+
+    @classmethod
+    def control(
+            cls,
+            withdrawal_id: str
+    ) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.accept_withdraw,
+                callback_data=f"{withdrawal_id}_{cls.accept_withdraw_callback}"
+            ),
+            InlineKeyboardButton(
+                text=cls.decline_withdraw,
+                callback_data=f"{withdrawal_id}_{cls.decline_withdraw_callback}"
+            )
+        )
+
+        return keyboard
+
+
 
 
 class AdminMenu(Base):
