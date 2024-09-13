@@ -35,36 +35,29 @@ async def home(
 ) -> None:
     await state.finish()
     await event.message.answer(
-        text=f"🎉 Hello {event.from_user.username}! \n"
+        text=f"🎉 Hello <b>{event.from_user.username if event.from_user.username else 'User'}</b>! \n"
              "==============================\n"
              "\n"
-             "🚨 Join the *BioMatrix Airdrop* to earn more rewards:\n"
+             "🚨 Join the <b>BioMatrix Daily Airdrop</b> to earn rewards:\n"
              "\n"
-             "🔹 *Task Reward*\n"
+             "🔹 <b>Task Reward</b>\n"
              "🔸 Unlimited Prize Pool\n"
-             "🔸 0.3 USDT + 100 POY for using APP\n"
-             "🔸 0.4 USDT for each valid invitation\n"
+             "🔸 0.2 USDT + 100 POY for using APP\n"
+             "🔸 0.3 USDT for each valid invitation\n"
              "\n"
-             "🔹 *Lucky Draw*\n"
-             "🔸 2500 USDT Summer Giveaway\n"
-             "🔸 500 participants will be randomly rewarded\n"
+             "🔹 <b>Lucky Draw</b>\n"
+             "🔸 Monthly\n"
+             "🔸 500 USDT in prizes\n"
+             "🔸 100 random winners\n"
              "\n"
-             "🔹 *Referral Reward*\n"
-             "🔸 The top 30 referrers share 2500 USDT\n"
-             "🔸 1st place: 1000 USDT\n"
-             "🔸 2nd place: 500 USDT\n"
-             "🔸 3rd place: 250 USDT\n"
-             "🔸 4th place: 100 USDT\n"
-             "🔸 5th to 30th place: 50 USDT each\n"
-             "\n"
-             "📅 *End Date*: 30 September 2024\n"
-             "🚀 *Distribution Time*: Up to 7 working days\n"
+             "📅 <b>End Date</b>: 31 December 2024\n"
+             "🚀 <b>Distribution Time</b>: Within 7 business days\n"
              "\n"
              "==============================\n"
-             "⬇️ **Click BioMatrix Airdrop and explore the tasks available**\n"
-             "⬇️ **Click My Balance to withdraw your rewards at any time**",
+             "⬇️ <i>Click <b>BioMatrix Airdrop</b> and explore the tasks available</i>\n"
+             "⬇️ <i>Click <b>My Balance</b> to withdraw your rewards at any time</i>\n",
         reply_markup=DescriptionMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -72,69 +65,47 @@ async def start(
         event: Message,
         state: FSMContext
 ) -> None:
+    referrer_id: int = 0
+
     try:
         referrer_id = int(
             event.text.split()[1]
         )
-        response = requests.post(
-            url=f"http://127.0.0.1:8000/user/{event.from_user.id}/refer_friend?referrer_id={referrer_id}"
-        )
-        if response.json()["status"] != 200:
-            await event.answer(
-                text=response.json()["message"]
-            )
-        else:
-            await bot.send_message(
-                chat_id=referrer_id,
-                text="🎉 New Referral Registered! 🎉\n"
-                     "\n"
-                     "👤 A new user has registered using your referral link.\n"
-                     "\n"
-                     "💸 You received a reward of 0.4 USDT\n"
-            )
-            requests.put(
-                url=f"http://127.0.0.1:8000/user/{referrer_id}/increase_balance?amount=0.4"
-            )
     except:
         pass
+
     requests.post(
-        url="http://127.0.0.1:8000/user/create_user",
+        url=f"{settings.BASE_API_URL}/user/create_user",
         json={
             "telegram_id": event.from_user.id,
-            "username": event.from_user.username if event.from_user.username else ""
+            "username": event.from_user.username if event.from_user.username else "",
+            "referred_by": referrer_id
         }
     )
     await event.answer(
-        text=f"🎉 Hello {event.from_user.username}! \n"
+        text=f"🎉 Hello <b>{event.from_user.username if event.from_user.username else 'User'}</b>! \n"
              "==============================\n"
              "\n"
-             "🚨 Join the *BioMatrix Airdrop* to earn more rewards:\n"
+             "🚨 Join the <b>BioMatrix Daily Airdrop</b> to earn rewards:\n"
              "\n"
-             "🔹 *Task Reward*\n"
+             "🔹 <b>Task Reward</b>\n"
              "🔸 Unlimited Prize Pool\n"
-             "🔸 0.3 USDT + 100 POY for using APP\n"
-             "🔸 0.4 USDT for each valid invitation\n"
+             "🔸 0.2 USDT + 100 POY for using APP\n"
+             "🔸 0.3 USDT for each valid invitation\n"
              "\n"
-             "🔹 *Lucky Draw*\n"
-             "🔸 2500 USDT Summer Giveaway\n"
-             "🔸 500 participants will be randomly rewarded\n"
+             "🔹 <b>Lucky Draw</b>\n"
+             "🔸 Monthly\n"
+             "🔸 500 USDT in prizes\n"
+             "🔸 100 random winners\n"
              "\n"
-             "🔹 *Referral Reward*\n"
-             "🔸 The top 30 referrers share 2500 USDT\n"
-             "🔸 1st place: 1000 USDT\n"
-             "🔸 2nd place: 500 USDT\n"
-             "🔸 3rd place: 250 USDT\n"
-             "🔸 4th place: 100 USDT\n"
-             "🔸 5th to 30th place: 50 USDT each\n"
-             "\n"
-             "📅 *End Date*: 30 September 2024\n"
-             "🚀 *Distribution Time*: Up to 7 working days\n"
+             "📅 <b>End Date</b>: 31 December 2024\n"
+             "🚀 <b>Distribution Time</b>: Within 7 business days\n"
              "\n"
              "==============================\n"
-             "⬇️ **Click BioMatrix Airdrop and explore the tasks available**\n"
-             "⬇️ **Click My Balance to withdraw your rewards at any time**",
+             "⬇️ <i>Click <b>BioMatrix Airdrop</b> and explore the tasks available</i>\n"
+             "⬇️ <i>Click <b>My Balance</b> to withdraw your rewards at any time</i>\n",
         reply_markup=DescriptionMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -143,14 +114,14 @@ async def tasks_list(
         state: FSMContext
 ) -> None:
     await event.message.answer(
-        text="🎯 **Complete Tasks & Earn Rewards!**\n"
+        text="🎯 <b>Complete Tasks & Earn Rewards!</b>\n"
              "\n"
-             "💎 Get **0.3 USDT** for using our Web APP\n"
-             "💎 Get **0.3 USDT** for using our iOS APP\n"
-             "💎 Get **0.3 USDT** for using our Android APP\n"
-             "💎 Get **0.4 USDT** for each valid invitation",
+             "💎 Get <b>0.2 USDT</b> for using our Web APP\n"
+             "💎 Get <b>0.2 USDT</b> for using our iOS APP\n"
+             "💎 Get <b>0.2 USDT</b> for using our Android APP\n"
+             "💎 Get <b>0.3 USDT</b> for each valid invitation",
         reply_markup=TasksListMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -159,26 +130,29 @@ async def user_balance(
         state: FSMContext
 ) -> None:
     response = requests.get(
-        url=f"http://127.0.0.1:8000/user/{event.from_user.id}"
+        url=f"{settings.BASE_API_URL}/user/{event.from_user.id}"
     ).json()["data"]
-    current_withdrawal = requests.get(
-        url=f"http://127.0.0.1:8000/user/current_withdrawal?withdrawal_id={response['current_withdrawal']}"
+    current_withdrawal = requests.post(
+        url=f"{settings.BASE_API_URL}/user/current_withdrawal",
+        json={
+            "withdrawal_id": response['current_withdrawal']
+        }
     ).json()
     total_withdrawals = requests.get(
-        url=f"http://127.0.0.1:8000/user/{event.from_user.id}/total_withdrawals"
+        url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/total_withdrawals"
     ).json()["data"]
     await event.message.answer(
-        text=f"💰 Your Current Balance: {response['balance']} USDT\n"
+        text=f"💰 <b>Your Current Balance</b>: {response['balance']} USDT\n"
              "\n"
-             f"➡️ Withdrawal Request: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
-             f"🤑 Total Withdrawals: {total_withdrawals['total_withdrawals']} USDT\n"
+             f"➡️ <b>Withdrawal Request</b>: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
+             f"🤑 <b>Total Withdrawals</b>: {total_withdrawals['total_withdrawals']} USDT\n"
              "\n"
-             f"👥 Friends Referred: {len(response['referred_friends'])}\n"
+             f"👥 <b>Friends Referred</b>: {len(response['referred_friends'])}\n"
              "\n"
-             "**Please note that your withdrawal requires the Telegram Wallet to be activated**"
+             "<i>Please note that your withdrawal requires the Telegram Wallet to be activated</i>"
         ,
         reply_markup=WithdrawMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -187,13 +161,14 @@ async def submit_referral(
         state: FSMContext
 ) -> None:
     await ReferralStates.submit_referral.set()
-    await event.message.answer(
-
-        text="✅ Click Settings\n"
+    await event.message.answer_photo(
+        photo=open("images/refcode.jpg", "rb"),
+        caption="✅ Click Settings\n"
              "✅ Scroll To The Referral Code Section\n"
              "✅ Copy your Referral Code\n"
              "\n"
-             "Then submit your Referral Code:\n",
+             "Then submit your *Referral Code*:\n",
+        reply_markup=HomeMenu.keyboard(),
         parse_mode="Markdown"
     )
 
@@ -203,20 +178,50 @@ async def check_referral(
         state: FSMContext
 ) -> None:
     await ReferralStates.checked_code.set()
-    response = BaseReferral().model_validate(
-        requests.get(
+    response = requests.get(
             f"https://rds-service.bio-matrix.com/redeemReferCode/{event.text}"
-        ).json()
     )
 
-    if response.Succ:
-        if response.refer_code_status == ResponseMessages.valid_code:
+    if response.status_code in range(200, 300):
+        response_model = BaseReferral().model_validate(
+            response.json()
+        )
+    else:
+        await state.finish()
+        return await event.answer(
+            text="❗️ We can't check your referral code now! Please try again later.",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="Markdown"
+        )
+
+    if response_model.Succ:
+        if response_model.refer_code_status == ResponseMessages.valid_code:
+            response = requests.post(
+                url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/complete_task"
+            ).json()
+
+            if response["status"] == 200:
+
+                if response["data"]["about"]["reward"]:
+                    try:
+                        await bot.send_message(
+                            chat_id=response["data"]["about"]["referrer_id"],
+                            text="🎉 <b>New Referral Registered!</b> 🎉\n"
+                                 "\n"
+                                 "👤 A new user has registered using your referral link.\n"
+                                 "\n"
+                                 "💸 You received a reward of 0.3 USDT\n",
+                            parse_mode="HTML"
+                        )
+                    except:
+                        pass
+
             return await event.answer(
-                text="🎉 Your referral code is valid! Your balance has been increased by 0.3 USDT.",
+                text="🎉 Your referral code is valid! Your balance has been increased by 0.2 USDT.",
                 reply_markup=HomeMenu.keyboard(),
                 parse_mode="Markdown"
             )
-        elif response.refer_code_status == ResponseMessages.already_redeemed:
+        elif response_model.refer_code_status == ResponseMessages.already_redeemed:
             return await event.answer(
                 text="⚠️ This referral code has already been used. Please check and try again.",
                 reply_markup=HomeMenu.keyboard(),
@@ -236,17 +241,17 @@ async def web_app_task(
         state: FSMContext
 ) -> None:
     await event.message.answer(
-        text="📝 Use BioMatrix Web App\n"
+        text="📝 <b>Use BioMatrix Web App</b>\n"
              "\n"
              "Only 3 steps to complete the task:\n"
              "\n"
-             "1️⃣ Register on the Web APP\n"
-             "2️⃣ Copy the Referral Code from the APP\n"
-             "3️⃣ Submit your Referral Code\n"
+             "1️⃣ <b>Register</b> on the <b>Web APP</b>\n"
+             "2️⃣ Copy the <b>Referral Code</b> from the APP\n"
+             "3️⃣ <b>Submit</b> your Referral Code\n"
              "\n"
-             "💰 You will earn 0.3 USDT and 100 POY for completing this task",
+             "💰 <i>You will earn 0.2 USDT and 100 POY for completing this task</i>",
         reply_markup=WebAppTasksMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -255,17 +260,17 @@ async def android_app_task(
         state: FSMContext
 ) -> None:
     await event.message.answer(
-        text="📝 Use BioMatrix Android App\n"
+        text="📝 <b>Use BioMatrix Android App</b>\n"
              "\n"
              "Only 3 steps to complete the task:\n"
              "\n"
-             "1️⃣ Register on the Android APP\n"
-             "2️⃣ Copy the Referral Code from the APP\n"
-             "3️⃣ Submit your Referral Code\n"
+             "1️⃣ <b>Register</b> on the <b>Android APP</b>\n"
+             "2️⃣ Copy the <b>Referral Code</b> from the APP\n"
+             "3️⃣ <b>Submit</b> your Referral Code\n"
              "\n"
-             "💰 You will earn 0.3 USDT and 100 POY for completing this task",
+             "💰 <i>You will earn 0.2 USDT and 100 POY for completing this task</i>",
         reply_markup=AndroidAppTasksMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -274,17 +279,17 @@ async def ios_app_task(
         state: FSMContext
 ) -> None:
     await event.message.answer(
-        text="📝 Use BioMatrix iOS App\n"
+        text="📝 <b>Use BioMatrix IOS App</b>\n"
              "\n"
              "Only 3 steps to complete the task:\n"
              "\n"
-             "1️⃣ Register on the iOS APP\n"
-             "2️⃣ Copy the Referral Code from the APP\n"
-             "3️⃣ Submit your Referral Code\n"
+             "1️⃣ <b>Register</b> on the <b>IOS APP</b>\n"
+             "2️⃣ Copy the <b>Referral Code</b> from the APP\n"
+             "3️⃣ <b>Submit</b> your Referral Code\n"
              "\n"
-             "💰 You will earn 0.3 USDT and 100 POY for completing this task",
+             "💰 <i>You will earn 0.2 USDT and 100 POY for completing this task</i>",
         reply_markup=IOSAppTasksMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -294,32 +299,39 @@ async def enter_ton_address(
 ) -> None:
     await ReferralStates.withdraw_address.set()
     response = requests.get(
-        url=f"http://127.0.0.1:8000/user/{event.from_user.id}"
+        url=f"{settings.BASE_API_URL}/user/{event.from_user.id}"
     ).json()["data"]
 
-    if float(response["balance"]) > 1:
-        current_withdrawal = requests.get(
-            url=f"http://127.0.0.1:8000/user/current_withdrawal?withdrawal_id={response['current_withdrawal']}"
-        ).json()
-        if current_withdrawal["status"] == 200 and current_withdrawal["data"]["status"] in ["approved", "declined"]:
-            return await event.message.answer(
-                text="❌ You cannot submit a new withdrawal request until your latest one has been processed. Thank you for your patience.",
-                reply_markup=HomeMenu.keyboard(),
-                parse_mode="Markdown"
-            )
+    current_withdrawal = requests.post(
+        url=f"{settings.BASE_API_URL}/user/current_withdrawal",
+        json={
+            "withdrawal_id": response['current_withdrawal']
+        }
+    ).json()
+
+    if current_withdrawal["status"] == 200 and current_withdrawal["data"]["status"] in ["pending", "declined"]:
+        await state.finish()
         return await event.message.answer(
-            text=f"💵 Withdrawal Amount: {response['balance']} USDT\n"
-                 "\n"
-                 "We only accept USDT-TON address from your Telegram Wallet\n"
-                 "\n"
-                 "Submit your USDT-TON Address\n",
-            reply_markup=HomeMenu.keyboard()
+            text="❌ You cannot submit a new withdrawal request until your latest one has been processed. Thank you for your patience.",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="Markdown"
+        )
+    elif float(response["balance"]) < 1:
+        await state.finish()
+        return await event.message.answer(
+            text="❌ *Minimum withdrawal amount 1 USDT*",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="Markdown"
         )
 
-    await event.message.answer(
-        text="❌ *Minimum withdrawal amount 1 USDT*",
+    return await event.message.answer(
+        text=f"💵 <b>Withdrawal Amount</b>: {response['balance']} USDT\n"
+             "\n"
+             "<i>We only accept USDT-TON address from your Telegram Wallet</i>\n"
+             "\n"
+             "Submit your <b>USDT-TON Address</b>\n",
         reply_markup=HomeMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -328,32 +340,33 @@ async def withdraw_balance(
         state: FSMContext
 ) -> None:
     withdrawal = requests.post(
-        url=f"http://127.0.0.1:8000/user/{event.from_user.id}/withdraw",
+        url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/withdraw",
         json={
             "ton_address": event.text
         }
     ).json()["data"]
     await event.answer(
-        text="✅ *Withdrawal Request Submitted*\n"
+        text="✅ <b>Withdrawal Request Submitted</b>\n"
              "\n"
              "Your withdrawal request has been successfully submitted. 🎉\n"
-             "We will review and process it within *7 business days*. Thank you for your patience! 😊\n",
+             "We will review and process it within <b>7 business days</b>. Thank you for your patience! 😊\n",
         reply_markup=HomeMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     await bot.send_message(
         chat_id=settings.ADMINS_CHAT,
-        text="🆕 New Withdrawal Request\n"
+        text="🆕 <b>New Withdrawal Request</b>\n"
              "\n"
-             f"User ID: {event.from_user.id}\n"
-             f"Username: {'@' + event.from_user.username if event.from_user.username else 'None'}\n"
-             f"TON Wallet Address: {event.text}\n"
-             f"Requested Balance: {withdrawal['amount']} USDT\n",
+             f"<b>User ID</b>: {event.from_user.id}\n"
+             f"<b>Username</b>: {'@' + event.from_user.username if event.from_user.username else 'None'}\n"
+             f"<b>TON Wallet Address</b>: {event.text}\n"
+             f"<b>Requested Balance</b>: {withdrawal['amount']} USDT\n",
         reply_markup=WithdrawMenu.control(
             withdrawal_id=withdrawal["id"]
         ),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
+    await state.finish()
 
 @handle_error
 async def invite_friend(
@@ -361,18 +374,19 @@ async def invite_friend(
         state: FSMContext
 ) -> None:
     response = requests.get(
-        url=f"http://127.0.0.1:8000/user/{event.from_user.id}"
+        url=f"{settings.BASE_API_URL}/user/{event.from_user.id}"
     ).json()["data"]
     await event.message.answer(
-        text="🎉 Invite your friends to join our bot and earn rewards! When your friends claim the airdrop, you will receive a reward of 0.4 USDT.\n"
+        text="🎉 Invite your friends to join our bot and earn rewards! When your friends claim the airdrop, you will receive a reward of <b>0.3 USDT</b>.\n"
              "\n"
-             f"🔗 Your Referral Link: https://t.me/officialBioMatrix_bot?start={event.from_user.id}\n"
-             f"👥 Friends Referred: {len(response['referred_friends'])}\n"
+             f"🔗 <b>Your Referral Link</b>: https://t.me/officialMrBuckista_bot?start={event.from_user.id}\n"
+             f"👥 <b>Friends Referred</b>: {len(response['referred_friends'])}\n"
              "\n"
              "Share this link with your friends and watch your balance grow! 🚀\n",
         reply_markup=InviteMenu.keyboard(
             user_id=event.from_user.id
-        )
+        ),
+        parse_mode="HTML"
     )
 
 

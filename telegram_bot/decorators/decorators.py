@@ -27,7 +27,7 @@ def handle_error(func: Callable) -> Callable:
             return await func(
                 *args, **kwargs
             )
-        except:
-            print(f"WARNING | Error during {func} function execution")
+        except Exception as err:
+            print(f"WARNING | Error during {func} function execution with error: {err}")
 
     return wrapper

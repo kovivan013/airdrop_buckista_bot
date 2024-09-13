@@ -35,9 +35,9 @@ async def check_admin(
 ) -> None:
     await AdminStates.enter_password.set()
     await event.answer(
-        text="*Enter admin password:*",
+        text="<i>Enter admin password:</i>",
         reply_markup=HomeMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -50,15 +50,15 @@ async def admin_menu(
     )
     if settings.ADMIN_PASSWORD != password_hash:
         return await event.answer(
-            text="*Incorrect password, please try again.*",
+            text="<i>Incorrect password, please try again.<i>",
             reply_markup=HomeMenu.keyboard(),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
     await AdminStates.admin_panel.set()
     await event.answer(
-        text="*You have successfully logged in as an administrator.*",
+        text="<i>You have successfully logged in as an administrator.</i>",
         reply_markup=AdminMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -67,9 +67,9 @@ async def overview(
         state: FSMContext
 ) -> None:
     await AdminStates.overview.set()
-    response = requests.get("http://127.0.0.1:8000/admin/overview").json()["data"]
+    response = requests.get(f"{settings.BASE_API_URL}/admin/overview").json()["data"]
     await event.message.answer(
-        text="📊 Overview\n"
+        text="📊 <b>Overview</b>\n"
              "\n"
              f"👥 Total users: {response['total_users']}\n"
              f"👥 Total Registered Users: {response['registered_users']}\n"
@@ -78,7 +78,7 @@ async def overview(
              f"✅ Total Completed Tasks: {response['total_completed_tasks']}\n"
              f"✅ Total Referrals: {response['total_refferals']}\n",
         reply_markup=HomeMenu.keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @handle_error
@@ -88,7 +88,7 @@ async def enter_user_id(
 ) -> None:
     await AdminStates.user_data.set()
     await event.message.answer(
-        text="📊 User Data\n"
+        text="📊 *User Data*\n"
              "\n"
              "Enter the UserID of the user",
         parse_mode="Markdown"
@@ -100,27 +100,34 @@ async def user_data(
         state: FSMContext
 ) -> None:
     response = requests.get(
-        url=f"http://127.0.0.1:8000/user/{event.text}"
+        url=f"{settings.BASE_API_URL}/user/{event.text}"
     ).json()
 
     if response["status"] == 200:
-        current_withdrawal = requests.get(
-            url=f"http://127.0.0.1:8000/user/current_withdrawal?withdrawal_id={response['data']['current_withdrawal']}"
+        current_withdrawal = requests.post(
+            url=f"{settings.BASE_API_URL}/user/current_withdrawal",
+            json={
+                "withdrawal_id": response['data']['current_withdrawal']
+            }
         ).json()
         total_withdrawals = requests.get(
-            url=f"http://127.0.0.1:8000/user/{event.text}/total_withdrawals"
+            url=f"{settings.BASE_API_URL}/user/{event.text}/total_withdrawals"
+        ).json()["data"]
+        completed_tasks = requests.get(
+            url=f"{settings.BASE_API_URL}/user/{event.text}/completed_tasks"
         ).json()["data"]
         return await event.answer(
-            text="📊 User Data\n"
+            text="📊 <b>User Data</b>\n"
                  "\n"
-                 f"UserID: {response['data']['telegram_id']}\n"
-                 f"Username: {'@' + response['data']['username'] if response['data']['username'] else 'None'}\n"
-                 f"Completed Tasks: {len([i for i in response['data']['completed_tasks'].values() if i])} / 1\n"
-                 f"Friends Referred: {len(response['data']['referred_friends'])}\n"
-                 f"Current Balance: {response['data']['balance']} USDT\n"
-                 f"Withdrawal Request: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
-                 f"Total Withdrawals: {total_withdrawals['total_withdrawals']} USDT",
+                 f"<b>UserID</b>: {response['data']['telegram_id']}\n"
+                 f"<b>Username</b>: {'@' + response['data']['username'] if response['data']['username'] else 'None'}\n"
+                 f"<b>Completed Tasks</b>: {completed_tasks['total_completed']} / {completed_tasks['completed_today']}\n"
+                 f"<b>Friends Referred</b>: {len(response['data']['referred_friends'])}\n"
+                 f"<b>Current Balance</b>: {response['data']['balance']} USDT\n"
+                 f"<b>Withdrawal Request</b>: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
+                 f"<b>Total Withdrawals</b>: {total_withdrawals['total_withdrawals']} USDT",
             reply_markup=HomeMenu.keyboard(),
+            parse_mode="HTML"
         )
 
     await event.answer(
@@ -135,7 +142,7 @@ async def lucky_draw_user(
 ) -> None:
     await AdminStates.lucky_user.set()
     await event.message.answer(
-        text="🎰 Lucky Draw\n"
+        text="🎰 *Lucky Draw*\n"
              "\n"
              "Enter the UserID of the user\n",
         parse_mode="Markdown"
@@ -152,7 +159,7 @@ async def lucky_draw_amount(
             event.text
         )
     await event.answer(
-        text="🎰 Lucky Draw\n"
+        text="🎰 *Lucky Draw*\n"
              "\n"
              f"Enter the prize amount for the user with ID {event.text}\n",
         parse_mode="Markdown"
@@ -166,7 +173,7 @@ async def lucky_draw(
     async with state.proxy() as data:
 
         response = requests.put(
-            url=f"http://127.0.0.1:8000/user/{data['user_id']}/increase_balance?amount={event.text}"
+            url=f"{settings.BASE_API_URL}/user/{data['user_id']}/increase_balance?amount={event.text}"
         ).json()
 
         if response["status"] == 200:
@@ -180,7 +187,7 @@ async def lucky_draw(
                 chat_id=data['user_id'],
                 text="🎉 *Congratulations!* \n"
                      "\n"
-                     f"You are fortunate to have won a prize of {event.text} USDT.\n",
+                     f"You are fortunate to have won a prize of *{event.text} USDT*.\n",
                 parse_mode="Markdown"
             )
 
@@ -197,7 +204,7 @@ async def top_referrers(
     await AdminStates.top_referrers.set()
 
     response = requests.get(
-        url="http://127.0.0.1:8000/admin/top_referrers"
+        url=f"{settings.BASE_API_URL}/admin/top_referrers"
     ).json()["data"]
 
     text = ""
@@ -205,11 +212,12 @@ async def top_referrers(
         text += f"{v['telegram_id']} / {'@' + v['username'] if v['username'] else 'None'} / {v['reffered_friends']}\n"
 
     await event.message.answer(
-        text="🏆 Top Referrers\n"
+        text="🏆 <b>Top Referrers</b>\n"
              "\n"
-             "UserID / Username / Friends Referred\n"
+             "<b>UserID / Username / Friends Referred</b>\n"
              f"{text}",
         reply_markup=HomeMenu.keyboard(),
+        parse_mode="HTML"
     )
 
 
@@ -221,31 +229,31 @@ async def accept_withdraw(
     withdrawal_id = event.data[:36]
 
     response = requests.post(
-        url=f"http://127.0.0.1:8000/admin/approve_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}"
+        url=f"{settings.BASE_API_URL}/admin/approve_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}"
     ).json()
 
     if response["status"] == 200:
         text = event.message.text[25:]
 
         await event.message.edit_text(
-            text=f"*✅ Withdrawal Request Approved*\n"
+            text=f"<b>✅ Withdrawal Request Approved</b>\n"
                  f"{text}",
             reply_markup={},
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
         await bot.send_message(
             chat_id=response["data"]["user_id"],
-            text="✅ *Withdrawal Request Approved*\n"
+            text="✅ <b>Withdrawal Request Approved</b>\n"
                  "\n"
                  "Hello! Your withdrawal request has been successfully approved.\n"
                  "\n"
-                 f"Requested Amount: {response['data']['amount']} USDT\n"
+                 f"<b>Requested Amount</b>: {response['data']['amount']} USDT\n"
                  "The funds will be transferred to your account shortly.\n"
                  "\n"
                  "For further questions, please join our channel.\n",
             reply_markup=HomeMenu.keyboard(),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
 
@@ -257,30 +265,30 @@ async def decline_withdraw(
     withdrawal_id = event.data[:36]
 
     response = requests.post(
-        url=f"http://127.0.0.1:8000/admin/decline_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}"
+        url=f"{settings.BASE_API_URL}/admin/decline_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}"
     ).json()
 
     if response["status"] == 200:
         text = event.message.text[25:]
 
         await event.message.edit_text(
-            text=f"*❌ Withdrawal Request Declined*\n"
+            text=f"❌ <b>Withdrawal Request Declined</b>\n"
                  f"{text}",
             reply_markup={},
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
         await bot.send_message(
             chat_id=response["data"]["user_id"],
-            text="❌ *Withdrawal Request Declined*\n"
+            text="❌ <b>Withdrawal Request Declined</b>\n"
                  "\n"
                  "Hello! We regret to inform you that your withdrawal request has been declined.\n"
                  "\n"
-                 "Please make sure to submit a valid USDT-Ton address provided by Telegram Wallet when applying for a withdrawal.\n"
+                 "Please make sure to submit a valid <b>USDT-Ton</b> address provided by <b>Telegram Wallet</b> when applying for a withdrawal.\n"
                  "\n"
                  "For further questions, please join our channel.\n",
             reply_markup=HomeMenu.keyboard(),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
 

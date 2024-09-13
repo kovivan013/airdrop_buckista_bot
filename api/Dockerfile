@@ -1,4 +1,4 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -9,4 +9,7 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
+EXPOSE 80
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+

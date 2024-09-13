@@ -20,7 +20,7 @@ def _uuid() -> str:
 
 def _today():
     pst = pytz.timezone(
-        'America/Los_Angeles'
+        'Asia/Singapore'
     )
     now = datetime.now(pst)
     midnight = now.replace(
@@ -31,4 +31,3 @@ def _today():
     )
 
     return timestamp
-

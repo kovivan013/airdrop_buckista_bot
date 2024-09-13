@@ -51,6 +51,10 @@ class Users(Base):
         BigInteger,
         nullable=False
     )
+    referred_by: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
 
     def as_model(self) -> Union[BaseUser]:
         return BaseUser().model_validate(

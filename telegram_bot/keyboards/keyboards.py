@@ -59,7 +59,7 @@ class DescriptionMenu:
     balance: str = "My Balance"
 
     airdrop_callback: str = "airdrop_callback"
-    join_channel_link: str = "https://t.me/BuckFree380"
+    join_channel_link: str = "https://t.me/mrbuckista"
     balance_callback: str = "balance_callback"
 
     @classmethod
@@ -212,7 +212,7 @@ class InviteMenu:
 
     invite_friends: str = "Invite friends"
 
-    invite_friends_link: str = "https://t.me/share/url?url=https://t.me/buckista_bot?start%3D{}&text=%0A🏆%20Unlimited%20Prize%20Pool%20%0A🔥%20100%25%20Free%20Rewards"
+    invite_friends_link: str = "https://t.me/share/url?text=%0A%F0%9F%8F%86%20Unlimited%20Prize%20Pool%20%0A%F0%9F%94%A5%20100%25%20Free%20Rewards&url=https://t.me/officialMrBuckista_bot?start%3D{}"
 
     @classmethod
     def keyboard(

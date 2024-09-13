@@ -5,6 +5,7 @@ from fastapi import (
     Request,
     Query,
 )
+from uuid import UUID
 from typing_extensions import Annotated
 from datetime import datetime
 from typing import Union, AsyncIterable
@@ -22,7 +23,8 @@ from database.core import (
 )
 from common.dtos import (
     UserCreate,
-    BalanceWithdraw
+    BalanceWithdraw,
+    WithdrawalStatus
 )
 from database.models.models import (
     Users,
@@ -53,6 +55,7 @@ async def create_user(
     data_scheme = BaseUser().model_validate(
         parameters.model_dump()
     )
+
     user = await session.get(
         Users,
         parameters.telegram_id
@@ -102,10 +105,10 @@ async def get_user(
             message="User not found"
         )._report()
 
-    await session.close()
-
     result.data = user.as_dict()
     result._status = HTTPStatus.HTTP_200_OK
+
+    await session.close()
 
     return result
 
@@ -143,9 +146,9 @@ async def get_balance(
     return result
 
 
-@user_router.get("/current_withdrawal")
+@user_router.post("/current_withdrawal")
 async def get_withdrawal(
-        withdrawal_id: str,
+        parameters: WithdrawalStatus,
         request: Request,
         session: AsyncSession = Depends(
             core.create_sa_session
@@ -155,7 +158,7 @@ async def get_withdrawal(
 
     withdrawal = await session.get(
         Withdrawals,
-        withdrawal_id
+        parameters.withdrawal_id
     )
 
     if not withdrawal:
@@ -299,69 +302,9 @@ async def decrease_balance(
     return result
 
 
-@user_router.post("/{telegram_id}/refer_friend")
-async def refer_friend(
-        referrer_id: int,
-        telegram_id: int,
-        request: Request,
-        session: AsyncSession = Depends(
-            core.create_sa_session
-        )
-) -> Union[DataStructure]:
-    result = DataStructure()
-
-    referrer = await session.get(
-        Users,
-        referrer_id
-    )
-    user = await session.get(
-        Users,
-        telegram_id
-    )
-
-    if not referrer:
-        return await Reporter(
-            exception=exceptions.ItemNotFound,
-            message="Unknown referrer."
-        )._report()
-
-    if user:
-        return await Reporter(
-            exception=exceptions.ItemNotFound,
-            message="This user has been already referred."
-        )._report()
-
-    if telegram_id in referrer.referred_friends:
-        return await Reporter(
-            exception=exceptions.ItemNotFound,
-            message="This user has been already referred."
-        )._report()
-
-    if referrer_id == telegram_id:
-        return await Reporter(
-            exception=exceptions.UnautorizedException,
-            message="Prohibited referrer."
-        )._report()
-
-    referrer.referred_friends = referrer.referred_friends + [telegram_id]
-
-    await session.commit()
-    await session.close()
-
-    result.data = {
-        "referred_friends": len(
-            referrer.referred_friends
-        )
-    }
-    result._status = HTTPStatus.HTTP_200_OK
-
-    return result
-
-
 @user_router.post("/{telegram_id}/complete_task")
 async def complete_task(
         telegram_id: int,
-        task_id: int,
         request: Request,
         session: AsyncSession = Depends(
             core.create_sa_session
@@ -380,13 +323,36 @@ async def complete_task(
             message="User not found"
         )._report()
 
-    if task_id < 1 or task_id > 3:
-        return await Reporter(
-            exception=exceptions.InvalidInputData,
-            message="Only 3 tasks."
-        )._report()
+    task_id: int = 0
+    reward: bool = False
 
-    user.completed_tasks[task_id] = True
+    for i, v in user.completed_tasks.items():
+        if int(i) >= task_id:
+            task_id = int(i) + 1
+
+    user.completed_tasks[task_id] = {
+        "task_id": task_id,
+        "completed_at": utils.timestamp()
+    }
+    user.balance += Decimal(
+        0.2
+    )
+
+    if not task_id:
+
+        if user.referred_by:
+
+            referrer = await session.get(
+                Users,
+                user.referred_by
+            )
+
+            if referrer:
+                referrer.balance += Decimal(
+                    0.3
+                )
+                reward = True
+                referrer.referred_friends = referrer.referred_friends + [telegram_id]
 
     await session.execute(
         update(
@@ -403,7 +369,56 @@ async def complete_task(
     await session.commit()
     await session.close()
 
-    result.data = user.completed_tasks
+    result.data = {
+        "completed_tasks": user.completed_tasks,
+        "about": {
+            "referrer_id": user.referred_by,
+            "reward": reward
+        }
+    }
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+
+@user_router.get("/{telegram_id}/completed_tasks")
+async def completed_tasks(
+        telegram_id: int,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    user = await session.get(
+        Users,
+        telegram_id
+    )
+
+    if not user:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="User not found"
+        )._report()
+
+    completed_today: int = 0
+    total_completed: int = len(
+        user.completed_tasks
+    )
+    today = utils._today()
+    end_of_today = today + 86400
+
+    for i, v in user.completed_tasks.items():
+        if v["completed_at"] in range(today, end_of_today):
+            completed_today += 1
+
+    await session.close()
+
+    result.data = {
+        "completed_today": completed_today,
+        "total_completed": total_completed
+    }
     result._status = HTTPStatus.HTTP_200_OK
 
     return result

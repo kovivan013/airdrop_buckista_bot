@@ -5,6 +5,7 @@ class UserCreate(BaseModel):
 
     telegram_id: int = 0
     username: str = ""
+    referred_by: int = 0
 
 
 class BalanceWithdraw(BaseModel):

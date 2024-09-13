@@ -68,18 +68,16 @@ async def overview(
     end_of_today = today + 86400
 
     for user in all_users:
-        tasks = user.completed_tasks
-        completed_tasks = [i for i in tasks.values() if i]
 
         total_completed_tasks += len(
-            completed_tasks
+            user.completed_tasks
         )
 
         total_refferals += len(
             user.referred_friends
         )
 
-        if True in tasks.values():
+        if len(user.completed_tasks):
             registered_users += 1
 
             if user.created_at in range(today, end_of_today):
@@ -127,8 +125,6 @@ async def top_referrers(
             }
         )
 
-    await session.close()
-
     top_referrers = sorted(
         refferers,
         key=lambda x: x['reffered_friends'],
@@ -141,6 +137,8 @@ async def top_referrers(
                 i: v
             }
         )
+
+    await session.close()
 
     result._status = HTTPStatus.HTTP_200_OK
 
@@ -186,8 +184,15 @@ async def approve_withdrawal(
             message="The withdrawal can't be approved."
         )._report()
 
+    user = await session.get(
+        Users,
+        withdrawal.user_id
+    )
+
     withdrawal.status = "approved"
     withdrawal.admin_id = admin_id
+
+    user.current_withdrawal = "0"
 
     await session.commit()
     await session.close()
@@ -245,7 +250,8 @@ async def decline_withdrawal(
     withdrawal.status = "declined"
     withdrawal.admin_id = admin_id
 
-    user.balance = withdrawal.amount
+    user.balance = user.balance + withdrawal.amount
+    user.current_withdrawal = "0"
 
     await session.commit()
     await session.close()

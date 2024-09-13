@@ -8,13 +8,10 @@ class BaseUser(BaseModel):
     username: str = ""
     balance: float = 0
     current_withdrawal: str = ""
-    completed_tasks: Dict[int, bool] = {
-        1: False,
-        2: False,
-        3: False
-    }
+    completed_tasks: Dict[int, dict] = {}
     referred_friends: List[int] = []
     created_at: int = 0
+    referred_by: int = 0
 
 
 class BaseWithdrawal(BaseModel):
