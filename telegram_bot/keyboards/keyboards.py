@@ -281,15 +281,19 @@ class WithdrawMenu:
 
 class AdminMenu(Base):
 
+    admin: str = "⚒️ Admin"
     overview: str = "Overview"
     user_data: str = "User Data"
     lucky_draw: str = "Lucky Draw"
     top_referrers: str = "Top Referrers"
+    cashier: str = "Cashier"
 
+    admin_callback: str = "admin_callback"
     overview_callback: str = "overview_callback"
     user_data_callback: str = "user_data_callback"
     lucky_draw_callback: str = "lucky_draw_callback"
     top_referrers_callback: str = "top_referrers_callback"
+    cashier_callback: str = "cashier_callback"
 
     @classmethod
     def keyboard(cls) -> Union[InlineKeyboardMarkup]:
@@ -313,8 +317,79 @@ class AdminMenu(Base):
                 callback_data=cls.top_referrers_callback
             ),
             InlineKeyboardButton(
+                text=cls.cashier,
+                callback_data=cls.cashier_callback
+            )
+        )
+        keyboard.add(
+            InlineKeyboardButton(
                 text=cls.home,
                 callback_data=cls.home_callback
+            )
+        )
+
+        return keyboard
+
+    @classmethod
+    def admin_menu(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.admin,
+                callback_data=cls.admin_callback
+            )
+        )
+
+        return keyboard
+
+
+class CashierMenu(AdminMenu):
+
+    main_wallet: str = "Main Wallet"
+    change_wallet: str = "Change Wallet"
+
+    main_wallet_callback: str = "main_wallet_callback"
+    change_wallet_callback: str = "change_wallet_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.main_wallet,
+                callback_data=cls.main_wallet_callback
+            )
+        )
+
+        return keyboard
+
+    @classmethod
+    def change_keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.change_wallet,
+                callback_data=cls.change_wallet_callback
+            )
+        )
+
+        return keyboard
+
+    @classmethod
+    def replaced_keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.main_wallet,
+                callback_data=cls.main_wallet_callback
+            ),
+            InlineKeyboardButton(
+                text=cls.admin,
+                callback_data=cls.admin_callback
             )
         )
 

@@ -26,20 +26,3 @@ class DataStructure(BaseModel):
     @_success.getter
     def _success(self) -> bool:
         return self.status in range(200, 300) and self.success
-
-
-class DataModel:
-
-    def __init__(
-            self,
-            data: dict
-    ) -> None:
-        for key, value in data.items():
-            setattr(
-                self, key, value
-            )
-
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            attr: value for attr, value in self.__dict__.items() if not attr.startswith('_')
-        }

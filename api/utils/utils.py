@@ -5,7 +5,7 @@ import pytz
 
 def timestamp() -> int:
     pst = pytz.timezone(
-        'America/Los_Angeles'
+        'Asia/Singapore'
     )
     now = datetime.now(pst)
 

@@ -15,7 +15,8 @@ from states.states import (
 from keyboards.keyboards import (
     HomeMenu,
     AdminMenu,
-    WithdrawMenu
+    WithdrawMenu,
+    CashierMenu
 )
 
 
@@ -25,7 +26,10 @@ access_states = [
     AdminStates.user_data,
     AdminStates.lucky_user,
     AdminStates.lucky_amount,
-    AdminStates.top_referrers
+    AdminStates.top_referrers,
+    AdminStates.main_wallet,
+    AdminStates.change_wallet,
+    AdminStates.cashier
 ]
 
 @handle_error
@@ -56,6 +60,18 @@ async def admin_menu(
         )
     await AdminStates.admin_panel.set()
     await event.answer(
+        text="<i>You have successfully logged in as an administrator.</i>",
+        reply_markup=AdminMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def admin_message(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.admin_panel.set()
+    await event.message.answer(
         text="<i>You have successfully logged in as an administrator.</i>",
         reply_markup=AdminMenu.keyboard(),
         parse_mode="HTML"
@@ -220,6 +236,63 @@ async def top_referrers(
         parse_mode="HTML"
     )
 
+@handle_error
+async def cashier(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.cashier.set()
+    await event.message.answer(
+        text="🏧 <b>Cashier</b>\n"
+             "\n"
+             f"💸 Total Transfer: 1276.4 USDT\n"
+             f"💸 This Month: 375.2 USDT\n"
+             f"💸 This Week: 34 USDT\n"
+             f"\n"
+             f"📩 <u>Download the weekly report in CSV</u>",
+        reply_markup=CashierMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def main_wallet(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.main_wallet.set()
+    await event.message.answer(
+        text=f"🗝️ <b>Main Wallet</b>\n"
+             f"\n"
+             f"{settings.WALLET_ADDRESS}",
+        reply_markup=CashierMenu.change_keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def change_wallet(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.change_wallet.set()
+    await event.message.answer(
+        text=f"🗝️ <b>Change Wallet</b>\n"
+             f"\n"
+             f"Submit a new USDT-Ton address",
+        reply_markup=AdminMenu.admin_menu(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def set_wallet(
+        event: Message,
+        state: FSMContext
+) -> None:
+    settings.WALLET_ADDRESS = event.text
+    await event.answer(
+        text=f"✅ The main wallet has been successfully replaced",
+        reply_markup=CashierMenu.replaced_keyboard(),
+        parse_mode="HTML"
+    )
 
 @handle_error
 async def accept_withdraw(
@@ -352,6 +425,41 @@ def register(
         top_referrers,
         Text(
             equals=AdminMenu.top_referrers_callback
+        ),
+        state=access_states
+    )
+    dp.register_callback_query_handler(
+        cashier,
+        Text(
+            equals=AdminMenu.cashier_callback
+        ),
+        state=access_states
+    )
+    dp.register_callback_query_handler(
+        main_wallet,
+        Text(
+            equals=CashierMenu.main_wallet_callback
+        ),
+        state=[
+            AdminStates.cashier,
+            AdminStates.change_wallet
+        ]
+    )
+    dp.register_callback_query_handler(
+        change_wallet,
+        Text(
+            equals=CashierMenu.change_wallet_callback
+        ),
+        state=AdminStates.main_wallet
+    )
+    dp.register_message_handler(
+        set_wallet,
+        state=AdminStates.change_wallet
+    )
+    dp.register_callback_query_handler(
+        admin_message,
+        Text(
+            equals=AdminMenu.admin_callback
         ),
         state=access_states
     )

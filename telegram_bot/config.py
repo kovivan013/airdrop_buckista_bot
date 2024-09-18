@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str
 
     BASE_API_URL: str = "http://18.199.174.253"
+
+    WALLET_ADDRESS: str = "None"
     ADMINS_CHAT: int = -1002430116586
 
 settings = Settings()

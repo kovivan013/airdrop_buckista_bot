@@ -10,6 +10,9 @@ class AdminStates(StatesGroup):
     lucky_user = State()
     lucky_amount = State()
     top_referrers = State()
+    cashier = State()
+    main_wallet = State()
+    change_wallet = State()
 
 
 class ReferralStates(StatesGroup):
