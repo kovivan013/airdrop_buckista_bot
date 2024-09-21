@@ -23,3 +23,18 @@ class BaseWithdrawal(BaseModel):
     amount: float = 0
     status: str = "pending"
     created_at: int = 0
+    updated_at: int = 0
+    message_id: int = 0
+
+class BaseTransaction(BaseModel):
+
+    transfer_id: int = 0
+    withdrawal_id: str = ""
+    timestamp: int = 0
+    spend_id: str = ""
+
+
+class CryptoFactoryException(BaseModel):
+
+    status: int = 200
+    message: str = ""

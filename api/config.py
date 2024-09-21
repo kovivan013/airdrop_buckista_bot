@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+from aiocryptopay import AioCryptoPay, Networks
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     user: str
     password: str
 
+    TRANSFERRING: bool = False
     SERVER_HOST: str = "127.0.0.1"
     SERVER_PORT: int = 8000
 
@@ -29,4 +30,3 @@ class Settings(BaseSettings):
         )
 
 settings = Settings()
-

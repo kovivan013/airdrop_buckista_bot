@@ -23,12 +23,14 @@ from database.core import (
 )
 from common.dtos import (
     UserCreate,
-    BalanceWithdraw,
+    # BalanceWithdraw,
     WithdrawalStatus
 )
 from database.models.models import (
     Users,
-    Withdrawals
+    Withdrawals,
+    TestWithdrawals,
+    CryptoWithdrawals
 )
 from schemas.schemas import (
     BaseUser,
@@ -157,7 +159,7 @@ async def get_withdrawal(
     result = DataStructure()
 
     withdrawal = await session.get(
-        Withdrawals,
+        CryptoWithdrawals,
         parameters.withdrawal_id
     )
 
@@ -198,11 +200,11 @@ async def total_withdrawals(
 
     user_withdrawals = await session.execute(
         select(
-            Withdrawals
+            CryptoWithdrawals
         ).filter(
-            Withdrawals.user_id == telegram_id
+            CryptoWithdrawals.user_id == telegram_id
         ).filter(
-            Withdrawals.status == "approved"
+            CryptoWithdrawals.status == "approved"
         )
     )
 
@@ -427,7 +429,7 @@ async def completed_tasks(
 @user_router.post("/{telegram_id}/withdraw")
 async def withdraw_balance(
         telegram_id: int,
-        parameters: BalanceWithdraw,
+        # parameters: BalanceWithdraw,
         request: Request,
         session: AsyncSession = Depends(
             core.create_sa_session
@@ -452,17 +454,15 @@ async def withdraw_balance(
             message="The balance must be > 1 to withdraw."
         )
 
-    data_scheme = BaseWithdrawal().model_validate(
-        parameters.model_dump()
+    data_scheme = BaseWithdrawal(
+        id=utils._uuid(),
+        user_id=telegram_id,
+        amount=float(user.balance),
+        created_at=utils.timestamp()
     )
 
-    data_scheme.id = utils._uuid()
-    data_scheme.user_id = telegram_id
-    data_scheme.amount = float(user.balance)
-    data_scheme.created_at = utils.timestamp()
-
     session.add(
-        Withdrawals(
+        CryptoWithdrawals(
             **data_scheme.model_dump()
         )
     )

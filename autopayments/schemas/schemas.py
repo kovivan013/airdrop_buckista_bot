@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Dict, List
 
 
 class BaseTransaction(BaseModel):
@@ -25,3 +26,16 @@ class BaseWithdrawal(BaseModel):
     status: str = "pending"
     created_at: int = 0
     updated_at: int = 0
+    message_id: int = 0
+
+
+class BaseUser(BaseModel):
+
+    telegram_id: int = 0
+    username: str = ""
+    balance: float = 0
+    current_withdrawal: str = ""
+    completed_tasks: Dict[int, dict] = {}
+    referred_friends: List[int] = []
+    created_at: int = 0
+    referred_by: int = 0

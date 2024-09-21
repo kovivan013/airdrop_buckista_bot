@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from schemas.schemas import CryptoFactoryException
 from uuid import uuid4
 import pytz
 
@@ -31,3 +32,12 @@ def _today():
     )
 
     return timestamp
+
+def decode_exception(exc: str):
+
+    return CryptoFactoryException(
+        status=int(exc.split(']')[0][1:]),
+        message=f"{exc.split('] ')[1].replace('_', ' ').capitalize()}."
+    )
+
+

@@ -5,6 +5,7 @@ from fastapi import (
     Request,
     Query,
 )
+from aiocryptopay import AioCryptoPay, Networks
 from typing_extensions import Annotated
 from datetime import datetime
 from typing import Union, AsyncIterable
@@ -22,19 +23,25 @@ from database.core import (
 from common.dtos import (
     UserCreate,
     BalanceWithdraw,
-    WithdrawalStatus
+    WithdrawalStatus,
+    TransferToken
 )
 from database.models.models import (
     Users,
-    Withdrawals
+    Withdrawals,
+    TestWithdrawals,
+    CryptoWithdrawals,
+    CryptoTransactions
 )
 from schemas.schemas import (
     BaseUser,
-    BaseWithdrawal
+    BaseWithdrawal,
+    BaseTransaction
 )
 from services import exceptions
 from schemas.base import DataStructure
 from utils import utils
+from config import settings
 
 
 admin_router = APIRouter()
@@ -149,6 +156,7 @@ async def top_referrers(
 async def approve_withdrawal(
         admin_id: int,
         withdrawal_id: str,
+        message_id: int,
         request: Request,
         session: AsyncSession = Depends(
             core.create_sa_session
@@ -168,7 +176,7 @@ async def approve_withdrawal(
         )._report()
 
     withdrawal = await session.get(
-        Withdrawals,
+        TestWithdrawals,
         withdrawal_id
     )
 
@@ -191,6 +199,8 @@ async def approve_withdrawal(
 
     withdrawal.status = "approved"
     withdrawal.admin_id = admin_id
+    withdrawal.message_id = message_id
+    withdrawal.updated_at = utils.timestamp()
 
     user.current_withdrawal = "0"
 
@@ -207,6 +217,7 @@ async def approve_withdrawal(
 async def decline_withdrawal(
         admin_id: int,
         withdrawal_id: str,
+        message_id: int,
         request: Request,
         session: AsyncSession = Depends(
             core.create_sa_session
@@ -226,7 +237,7 @@ async def decline_withdrawal(
         )._report()
 
     withdrawal = await session.get(
-        Withdrawals,
+        TestWithdrawals,
         withdrawal_id
     )
 
@@ -249,6 +260,8 @@ async def decline_withdrawal(
 
     withdrawal.status = "declined"
     withdrawal.admin_id = admin_id
+    withdrawal.message_id = message_id
+    withdrawal.updated_at = utils.timestamp()
 
     user.balance = user.balance + withdrawal.amount
     user.current_withdrawal = "0"
@@ -257,6 +270,166 @@ async def decline_withdrawal(
     await session.close()
 
     result.data = withdrawal.as_dict()
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+@admin_router.post("/transfer")
+async def transfer_funds(
+        parameters: TransferToken,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    crypto_bot = AioCryptoPay(
+        token=parameters.token,
+        network=Networks.MAIN_NET
+    )
+
+    try:
+        await crypto_bot.get_me()
+    except:
+        return await Reporter(
+            exception=exceptions.UnautorizedException
+        )._report()
+
+    if settings.TRANSFERRING:
+        return await Reporter(
+            exception=exceptions.BadRequest,
+            message="Funds are being transferred."
+        )._report()
+
+    query = await session.execute(
+        select(
+            CryptoWithdrawals
+        ).filter(
+            CryptoWithdrawals.status == "approved"
+        ).limit(10)
+    )
+    withdrawals = query.scalars().all()
+
+    if withdrawals:
+        settings.TRANSFERRING = True
+
+    for index, withdrawal in enumerate(withdrawals):
+        withdrawal.status = "sent"
+        try:
+            spend_id = utils._uuid()
+            transfer_response = await crypto_bot.transfer(
+                user_id=withdrawal.user_id,
+                asset="USDT",
+                amount=float(withdrawal.amount),
+                spend_id=spend_id
+            )
+            session.add(
+                CryptoTransactions(
+                    **BaseTransaction(
+                        transfer_id=transfer_response.transfer_id,
+                        withdrawal_id=withdrawal.id,
+                        timestamp=utils.timestamp(),
+                        spend_id=spend_id
+                    ).model_dump()
+                )
+            )
+        except Exception as err:
+            print(err)
+            withdrawal.status = "failed"
+            # error = utils.decode_exception(
+            #     str(err)
+            # )
+            # return await Reporter(
+            #     exception=error.status,
+            #     message=error.message
+            # )
+
+        # withdrawal.status = "failed"
+
+        # if transfer_response.status == 200:
+
+        user = await session.get(
+            Users,
+            withdrawal.user_id
+        )
+        username: str = "None"
+
+        if user and user.username:
+            username = f"@{user.username}"
+
+        result.data.update({
+            index: {
+                "message_id": withdrawal.message_id,
+                "status": withdrawal.status,
+                "updated_at": withdrawal.updated_at,
+                "request": {
+                    "id": withdrawal.id,
+                    "user_id": withdrawal.user_id,
+                    "username": username,
+                    "amount": withdrawal.amount
+                }
+            }
+        })
+        withdrawal.updated_at = utils.timestamp()
+
+        await session.commit()
+
+    await session.close()
+
+    settings.TRANSFERRING = False
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+
+@admin_router.post("/reset_withdrawal")
+async def transfer_failed(
+        withdrawal_id: str,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    withdrawal = await session.get(
+        CryptoWithdrawals,
+        withdrawal_id
+    )
+
+    if not withdrawal:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Unknown withdrawal."
+        )._report()
+
+    if withdrawal.status != "failed":
+        return await Reporter(
+            exception=exceptions.NotAcceptable,
+            message="The withdrawal can't be updated."
+        )._report()
+
+    user = await session.get(
+        Users,
+        withdrawal.user_id
+    )
+
+    if not user:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="User not found"
+        )._report()
+
+    withdrawal.status = "pending"
+    withdrawal.updated_at = utils.timestamp()
+
+    user.current_withdrawal = withdrawal.id
+
+    await session.commit()
+    await session.close()
+
+    # result.data = withdrawal.as_dict()
     result._status = HTTPStatus.HTTP_200_OK
 
     return result

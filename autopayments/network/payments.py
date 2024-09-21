@@ -25,7 +25,8 @@ from database.core import (
 )
 from database.models.models import (
     Transactions,
-    TestWithdrawals
+    TestWithdrawals,
+    Users
 )
 from schemas.schemas import (
     BaseTransaction,
@@ -150,47 +151,47 @@ async def set_mnemonics(
 #
 #     return result
 
-@payment_router.patch("/transactions/{transaction_hash}")
-async def update_transaction(
-        transaction_hash: str,
-        request: Request,
-        status: int = Query(
-            0,
-            gt=-1,
-            lt=3
-        ),
-        session: AsyncSession = Depends(
-            core.create_sa_session
-        )
-):
-    result = DataStructure()
-
-    transaction = await session.get(
-        Transactions,
-        transaction_hash
-    )
-
-    if not transaction:
-        return await Reporter(
-            exception=exceptions.ItemNotFound,
-            message="Transaction not found."
-        )._report()
-
-    if transaction.status != 0:
-        return await Reporter(
-            exception=exceptions.ItemNotFound,
-            message="Unable to update the transaction status."
-        )._report()
-
-    transaction.status = status
-
-    await session.commit()
-    await session.close()
-
-    result.data = transaction.as_model()
-    result._status = HTTPStatus.HTTP_200_OK
-
-    return result
+# @payment_router.patch("/transactions/{transaction_hash}")
+# async def update_transaction(
+#         transaction_hash: str,
+#         request: Request,
+#         status: int = Query(
+#             0,
+#             gt=-1,
+#             lt=3
+#         ),
+#         session: AsyncSession = Depends(
+#             core.create_sa_session
+#         )
+# ):
+#     result = DataStructure()
+#
+#     transaction = await session.get(
+#         Transactions,
+#         transaction_hash
+#     )
+#
+#     if not transaction:
+#         return await Reporter(
+#             exception=exceptions.ItemNotFound,
+#             message="Transaction not found."
+#         )._report()
+#
+#     if transaction.status != 0:
+#         return await Reporter(
+#             exception=exceptions.ItemNotFound,
+#             message="Unable to update the transaction status."
+#         )._report()
+#
+#     transaction.status = status
+#
+#     await session.commit()
+#     await session.close()
+#
+#     result.data = transaction.as_model()
+#     result._status = HTTPStatus.HTTP_200_OK
+#
+#     return result
 
 @payment_router.post("/transactions")
 async def process_transactions(
@@ -207,23 +208,26 @@ async def process_transactions(
             message="Funds are being transferred."
         )._report()
 
-    withdrawals = await session.execute(
+    query = await session.execute(
         select(
             TestWithdrawals
         ).filter(
             TestWithdrawals.status == "approved"
-        )
+        ).limit(10)
     )
+    withdrawals = query.scalars().all()
 
     if withdrawals:
         settings.TRANSFERRING = True
 
-    for withdrawal in withdrawals.scalars().all():
-
+    for index, withdrawal in enumerate(withdrawals):
+        print(index)
         transfer_response = await utils.transfer_usdt(
             to_addr=withdrawal.ton_address,
             amount=withdrawal.amount
         )
+
+        withdrawal.status = "failed"
 
         if transfer_response.transaction_created:
 
@@ -240,18 +244,84 @@ async def process_transactions(
 
             if transfer_response.success:
 
-                withdrawal.status = {
-                    True: "sent",
-                    False: "failed"
-                }[transfer_response.success]
-                withdrawal.updated_at = utils.timestamp()
+                withdrawal.status = "sent"
 
-            await session.commit()
-            await session.close()
+        user = await session.get(
+            Users,
+            withdrawal.user_id
+        )
+        username: str = "None"
+
+        if user and user.username:
+            username = f"@{user.username}"
+
+        result.data.update({
+            index: {
+                "message_id": withdrawal.message_id,
+                "status": withdrawal.status,
+                "updated_at": withdrawal.updated_at,
+                "request": {
+                    "id": withdrawal.id,
+                    "user_id": withdrawal.user_id,
+                    "username": username,
+                    "ton_address": withdrawal.ton_address,
+                    "amount": withdrawal.amount
+                }
+            }
+        })
+        withdrawal.updated_at = utils.timestamp()
+
+        await session.commit()
+
+    await session.close()
+
+    settings.TRANSFERRING = False
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
 
 
-        print(transfer_response)
+@payment_router.patch("/reset_withdrawal")
+async def transfer_failed(
+        withdrawal_id: str,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+):
+    result = DataStructure()
 
+    withdrawal = await session.get(
+        TestWithdrawals,
+        withdrawal_id
+    )
 
+    if not withdrawal:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Unknown withdrawal."
+        )._report()
+
+    if withdrawal.status != "failed":
+        return await Reporter(
+            exception=exceptions.NotAcceptable,
+            message="The withdrawal can't be updated."
+        )._report()
+
+    user = await session.get(
+        Users,
+        withdrawal.user_id
+    )
+
+    withdrawal.status = "pending"
+    withdrawal.updated_at = utils.timestamp()
+
+    user.current_withdrawal = withdrawal.id
+
+    await session.commit()
+    await session.close()
+
+    # result.data = withdrawal.as_dict()
+    result._status = HTTPStatus.HTTP_200_OK
 
     return result

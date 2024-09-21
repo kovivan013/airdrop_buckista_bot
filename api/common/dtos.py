@@ -8,11 +8,16 @@ class UserCreate(BaseModel):
     referred_by: int = 0
 
 
-class BalanceWithdraw(BaseModel):
-
-    ton_address: str = ""
+# class BalanceWithdraw(BaseModel):
+#
+#     ton_address: str = ""
 
 
 class WithdrawalStatus(BaseModel):
 
     withdrawal_id: str = ""
+
+
+class TransferToken(BaseModel):
+
+    token: str = ""

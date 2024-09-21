@@ -263,7 +263,7 @@ async def main_wallet(
     await event.message.answer(
         text=f"🗝️ <b>Main Wallet</b>\n"
              f"\n"
-             f"{settings.WALLET_ADDRESS}",
+             f"{settings.CRYPTOBOT_TOKEN}",
         reply_markup=CashierMenu.change_keyboard(),
         parse_mode="HTML"
     )
@@ -277,7 +277,7 @@ async def change_wallet(
     await event.message.answer(
         text=f"🗝️ <b>Change Wallet</b>\n"
              f"\n"
-             f"Submit a new USDT-Ton address",
+             f"Submit a new CryptoBot token",
         reply_markup=AdminMenu.admin_menu(),
         parse_mode="HTML"
     )
@@ -287,7 +287,7 @@ async def set_wallet(
         event: Message,
         state: FSMContext
 ) -> None:
-    settings.WALLET_ADDRESS = event.text
+    settings.CRYPTOBOT_TOKEN = event.text
     await event.answer(
         text=f"✅ The main wallet has been successfully replaced",
         reply_markup=CashierMenu.replaced_keyboard(),
@@ -299,35 +299,36 @@ async def accept_withdraw(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
+    print(event.message, event.message.message_id)
     withdrawal_id = event.data[:36]
 
     response = requests.post(
-        url=f"{settings.BASE_API_URL}/admin/approve_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}"
+        url=f"{settings.BASE_API_URL}/admin/approve_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}&message_id={event.message.message_id}"
     ).json()
 
     if response["status"] == 200:
         text = event.message.text[25:]
 
         await event.message.edit_text(
-            text=f"<b>✅ Withdrawal Request Approved</b>\n"
+            text=f"<b>⏰ Withdrawal Request in Progress</b>\n"
                  f"{text}",
             reply_markup={},
             parse_mode="HTML"
         )
 
-        await bot.send_message(
-            chat_id=response["data"]["user_id"],
-            text="✅ <b>Withdrawal Request Approved</b>\n"
-                 "\n"
-                 "Hello! Your withdrawal request has been successfully approved.\n"
-                 "\n"
-                 f"<b>Requested Amount</b>: {response['data']['amount']} USDT\n"
-                 "The funds will be transferred to your account shortly.\n"
-                 "\n"
-                 "For further questions, please join our channel.\n",
-            reply_markup=HomeMenu.keyboard(),
-            parse_mode="HTML"
-        )
+        # await bot.send_message(
+        #     chat_id=response["data"]["user_id"],
+        #     text="✅ <b>Withdrawal Request Approved</b>\n"
+        #          "\n"
+        #          "Hello! Your withdrawal request has been successfully approved.\n"
+        #          "\n"
+        #          f"<b>Requested Amount</b>: {response['data']['amount']} USDT\n"
+        #          "The funds will be transferred to your account shortly.\n"
+        #          "\n"
+        #          "For further questions, please join our channel.\n",
+        #     reply_markup=HomeMenu.keyboard(),
+        #     parse_mode="HTML"
+        # )
 
 
 @handle_error
@@ -338,7 +339,7 @@ async def decline_withdraw(
     withdrawal_id = event.data[:36]
 
     response = requests.post(
-        url=f"{settings.BASE_API_URL}/admin/decline_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}"
+        url=f"{settings.BASE_API_URL}/admin/decline_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}&message_id={event.message.message_id}"
     ).json()
 
     if response["status"] == 200:

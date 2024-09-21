@@ -341,9 +341,9 @@ async def withdraw_balance(
 ) -> None:
     withdrawal = requests.post(
         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/withdraw",
-        json={
-            "ton_address": event.text
-        }
+        # json={
+        #     "ton_address": event.text
+        # }
     ).json()["data"]
     await event.answer(
         text="✅ <b>Withdrawal Request Submitted</b>\n"
@@ -359,7 +359,7 @@ async def withdraw_balance(
              "\n"
              f"<b>User ID</b>: {event.from_user.id}\n"
              f"<b>Username</b>: {'@' + event.from_user.username if event.from_user.username else 'None'}\n"
-             f"<b>TON Wallet Address</b>: {event.text}\n"
+             # f"<b>TON Wallet Address</b>: {event.text}\n"
              f"<b>Requested Balance</b>: {withdrawal['amount']} USDT\n",
         reply_markup=WithdrawMenu.control(
             withdrawal_id=withdrawal["id"]

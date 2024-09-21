@@ -102,6 +102,12 @@ async def transfer_usdt(
         version='v3r2',
         provider=provider
     )
+    result.transaction_created: bool = False
+
+    if wallet.version != "v3r2":
+        result._status = exceptions.UnautorizedException
+
+        return result
 
     user_wallet = await check_wallet(
         address=to_addr
@@ -124,10 +130,7 @@ async def transfer_usdt(
             print(response.dict())
             if response.status == 200:
 
-                result.transaction_created: bool = False
-
                 for i in range(10):
-                    print("FOR", i)
                     await asyncio.sleep(6)
 
                     transactions = requests.get(
@@ -135,11 +138,9 @@ async def transfer_usdt(
                     )
 
                     if transactions.status_code == 200:
-                        print("SUCCESS TRANSR FOR", i)
                         for transaction in transactions.json()["transactions"]:
                             try:
                                 if transaction["in_msg"]["decoded_body"]["seqno"] == response.seqno:
-                                    print("SUCCESS CREATED", i)
                                     result.transaction_created = True
                                     t_data = transaction
                                     break
@@ -153,10 +154,10 @@ async def transfer_usdt(
 
                 if result.transaction_created:
 
-                    result.data.update({
+                    result.data = {
                         "hash": t_data["hash"]
-                    })
-                    print(t_data["out_msgs"], bool(t_data["out_msgs"]))
+                    }
+
                     if t_data and t_data["out_msgs"]:
 
                         result._status = HTTPStatus.HTTP_200_OK

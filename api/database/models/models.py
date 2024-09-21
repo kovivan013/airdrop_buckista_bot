@@ -4,7 +4,8 @@ from pydantic import BaseModel
 
 from schemas.schemas import (
     BaseUser,
-    BaseWithdrawal
+    BaseWithdrawal,
+    BaseTransaction
 )
 from sqlalchemy.orm import (
     mapped_column,
@@ -94,8 +95,132 @@ class Withdrawals(Base):
         BigInteger,
         nullable=False
     )
+    updated_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    message_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
 
     def as_model(self) -> Union[BaseWithdrawal]:
         return BaseWithdrawal().model_validate(
+            self.as_dict()
+        )
+
+
+class TestWithdrawals(Base):
+
+    id: Mapped[String] = mapped_column(
+        String,
+        primary_key=True,
+        index=True
+    )
+    user_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    admin_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        default=0
+    )
+    ton_address: Mapped[String] = mapped_column(
+        String,
+        nullable=False
+    )
+    amount: Mapped[Numeric] = mapped_column(
+        Numeric,
+        nullable=False
+    )
+    status: Mapped[String] = mapped_column(
+        String,
+        nullable=False,
+        default="pending"
+    )
+    created_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    updated_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    message_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BaseWithdrawal]:
+        return BaseWithdrawal().model_validate(
+            self.as_dict()
+        )
+
+
+class CryptoWithdrawals(Base):
+
+    id: Mapped[String] = mapped_column(
+        String,
+        primary_key=True,
+        index=True
+    )
+    user_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    admin_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        default=0
+    )
+    amount: Mapped[Numeric] = mapped_column(
+        Numeric,
+        nullable=False
+    )
+    status: Mapped[String] = mapped_column(
+        String,
+        nullable=False,
+        default="pending"
+    )
+    created_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    updated_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    message_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BaseWithdrawal]:
+        return BaseWithdrawal().model_validate(
+            self.as_dict()
+        )
+
+
+class CryptoTransactions(Base):
+
+    transfer_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        primary_key=True,
+        index=True
+    )
+    withdrawals_id: Mapped[String] = mapped_column(
+        String,
+        nullable=False
+    )
+    timestamp: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    spend_id: Mapped[String] = mapped_column(
+        String,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BaseTransaction]:
+        return BaseTransaction().model_validate(
             self.as_dict()
         )

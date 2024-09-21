@@ -4,7 +4,8 @@ from pydantic import BaseModel
 
 from schemas.schemas import (
     BaseTransaction,
-    BaseWithdrawal
+    BaseWithdrawal,
+    BaseUser
 )
 from sqlalchemy.orm import (
     mapped_column,
@@ -84,8 +85,54 @@ class TestWithdrawals(Base):
         BigInteger,
         nullable=False
     )
+    message_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
 
     def as_model(self) -> Union[BaseWithdrawal]:
         return BaseWithdrawal().validate(
+            self.as_dict()
+        )
+
+
+class Users(Base):
+
+    telegram_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        primary_key=True,
+        index=True
+    )
+    username: Mapped[String] = mapped_column(
+        String,
+        nullable=False
+    )
+    balance: Mapped[Numeric] = mapped_column(
+        Numeric,
+        nullable=False
+    )
+    current_withdrawal: Mapped[String] = mapped_column(
+        String,
+        nullable=False
+    )
+    completed_tasks: Mapped[JSON] = mapped_column(
+        JSON,
+        nullable=False
+    )
+    referred_friends: Mapped[ARRAY] = mapped_column(
+        ARRAY(BigInteger),
+        nullable=False
+    )
+    created_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    referred_by: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BaseUser]:
+        return BaseUser().validate(
             self.as_dict()
         )
