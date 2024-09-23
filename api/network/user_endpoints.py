@@ -204,7 +204,7 @@ async def total_withdrawals(
         ).filter(
             CryptoWithdrawals.user_id == telegram_id
         ).filter(
-            CryptoWithdrawals.status == "approved"
+            CryptoWithdrawals.status == "sent"
         )
     )
 

@@ -343,23 +343,60 @@ class AdminMenu(Base):
 
         return keyboard
 
+    @classmethod
+    def pay_button(
+            cls,
+            amount: float,
+            invoice_url: str
+    ) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=f"💸 Pay ${amount:.1f}",
+                url=invoice_url
+            ),
+            InlineKeyboardButton(
+                text=cls.admin,
+                callback_data=cls.admin_callback
+            )
+        )
+
+        return keyboard
+
 
 class CashierMenu(AdminMenu):
 
     main_wallet: str = "Main Wallet"
     change_wallet: str = "Change Wallet"
+    deposit: str = "Deposit"
+    weekly_report: str = "Weekly Report"
 
     main_wallet_callback: str = "main_wallet_callback"
     change_wallet_callback: str = "change_wallet_callback"
+    deposit_callback: str = "deposit_callback"
+    weekly_report_callback: str = "weekly_report_callback"
 
     @classmethod
     def keyboard(cls) -> Union[InlineKeyboardMarkup]:
-        keyboard = default_inline_keyboard()
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
 
         keyboard.add(
             InlineKeyboardButton(
+                text=cls.deposit,
+                callback_data=cls.deposit_callback
+            ),
+            InlineKeyboardButton(
                 text=cls.main_wallet,
                 callback_data=cls.main_wallet_callback
+            ),
+            InlineKeyboardButton(
+                text=cls.weekly_report,
+                callback_data=cls.weekly_report_callback
             )
         )
 

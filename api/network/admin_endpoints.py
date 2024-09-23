@@ -22,7 +22,7 @@ from database.core import (
 )
 from common.dtos import (
     UserCreate,
-    BalanceWithdraw,
+    # BalanceWithdraw,
     WithdrawalStatus,
     TransferToken
 )
@@ -176,7 +176,7 @@ async def approve_withdrawal(
         )._report()
 
     withdrawal = await session.get(
-        TestWithdrawals,
+        CryptoWithdrawals,
         withdrawal_id
     )
 
@@ -237,7 +237,7 @@ async def decline_withdrawal(
         )._report()
 
     withdrawal = await session.get(
-        TestWithdrawals,
+        CryptoWithdrawals,
         withdrawal_id
     )
 
@@ -273,6 +273,113 @@ async def decline_withdrawal(
     result._status = HTTPStatus.HTTP_200_OK
 
     return result
+
+@admin_router.get("/weekly_report")
+async def weekly_report(
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    query = await session.execute(
+        select(
+            CryptoTransactions
+        ).filter(
+            CryptoTransactions.timestamp > utils.timestamp() - 604800
+        )
+    )
+    transactions = query.scalars().all()
+    rows: list = []
+
+    for transaction in transactions:
+        withdrawal = await session.get(
+            CryptoWithdrawals,
+            transaction.withdrawal_id
+        )
+        user = await session.get(
+            Users,
+            withdrawal.user_id
+        )
+        row = [
+            withdrawal.user_id,
+            user.username,
+            f"{withdrawal.amount} USDT",
+            withdrawal.status,
+            utils.to_date(
+                withdrawal.updated_at
+            )
+        ]
+        rows.append(
+            row
+        )
+
+    await session.close()
+
+    result.data = {
+        "values": [
+            "User ID",
+            "Username",
+            "Withdrawal Amount",
+            "Payment Status",
+            "Last Change"
+        ],
+        "rows": rows
+    }
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+@admin_router.get("/cashier_statistics")
+async def cashier_statistics(
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    query = await session.execute(
+        select(
+            CryptoTransactions
+        )
+    )
+    transactions = query.scalars().all()
+    total_transfer: float = 0
+    this_month: float = 0
+    this_week: float = 0
+
+    month_start: int = utils.month_start()
+    week_start: int = utils.week_start()
+
+    for transaction in transactions:
+        withdrawal = await session.get(
+            CryptoWithdrawals,
+            transaction.withdrawal_id
+        )
+        amount = float(
+            withdrawal.amount
+        )
+
+        total_transfer += amount
+
+        if transaction.timestamp >= month_start:
+            this_month += amount
+        if transaction.timestamp >= week_start:
+            this_week += amount
+
+    await session.close()
+
+    result.data = {
+        "total_transfer": total_transfer,
+        "this_month": this_month,
+        "this_week": this_week
+    }
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
 
 @admin_router.post("/transfer")
 async def transfer_funds(
@@ -334,20 +441,9 @@ async def transfer_funds(
                     ).model_dump()
                 )
             )
-        except Exception as err:
-            print(err)
+        except:
             withdrawal.status = "failed"
-            # error = utils.decode_exception(
-            #     str(err)
-            # )
-            # return await Reporter(
-            #     exception=error.status,
-            #     message=error.message
-            # )
 
-        # withdrawal.status = "failed"
-
-        # if transfer_response.status == 200:
 
         user = await session.get(
             Users,
@@ -362,7 +458,9 @@ async def transfer_funds(
             index: {
                 "message_id": withdrawal.message_id,
                 "status": withdrawal.status,
-                "updated_at": withdrawal.updated_at,
+                "updated_at": utils.to_date(
+                    withdrawal.updated_at
+                ),
                 "request": {
                     "id": withdrawal.id,
                     "user_id": withdrawal.user_id,

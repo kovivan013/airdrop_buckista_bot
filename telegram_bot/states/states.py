@@ -13,6 +13,7 @@ class AdminStates(StatesGroup):
     cashier = State()
     main_wallet = State()
     change_wallet = State()
+    invoice_amount = State()
 
 
 class ReferralStates(StatesGroup):

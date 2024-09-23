@@ -1,7 +1,10 @@
+import csv
+import requests
+
 from aiogram import Dispatcher
 from config import settings, bot
 from utils import utils
-import requests
+from aiocryptopay import AioCryptoPay, Networks
 from decorators.decorators import private_message, handle_error
 from aiogram.types import (
     Message,
@@ -29,7 +32,8 @@ access_states = [
     AdminStates.top_referrers,
     AdminStates.main_wallet,
     AdminStates.change_wallet,
-    AdminStates.cashier
+    AdminStates.cashier,
+    AdminStates.invoice_amount
 ]
 
 @handle_error
@@ -242,14 +246,30 @@ async def cashier(
         state: FSMContext
 ) -> None:
     await AdminStates.cashier.set()
+
+    balance = None
+    crypto_bot = AioCryptoPay(
+        token=settings.CRYPTOBOT_TOKEN,
+        network=Networks.MAIN_NET
+    )
+
+    try:
+        balance = f"{(await crypto_bot.get_balance())[0].available} USDT"
+    except:
+        pass
+
+    response = requests.get(
+        url=f"{settings.BASE_API_URL}/admin/cashier_statistics"
+    ).json()["data"]
+
     await event.message.answer(
         text="🏧 <b>Cashier</b>\n"
              "\n"
-             f"💸 Total Transfer: 1276.4 USDT\n"
-             f"💸 This Month: 375.2 USDT\n"
-             f"💸 This Week: 34 USDT\n"
+             f"💸 Total Transfer: {response['total_transfer']} USDT\n"
+             f"💸 This Month: {response['this_month']} USDT\n"
+             f"💸 This Week: {response['this_week']} USDT\n"
              f"\n"
-             f"📩 <u>Download the weekly report in CSV</u>",
+             f"💰 Balance: {balance}",
         reply_markup=CashierMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -260,6 +280,7 @@ async def main_wallet(
         state: FSMContext
 ) -> None:
     await AdminStates.main_wallet.set()
+
     await event.message.answer(
         text=f"🗝️ <b>Main Wallet</b>\n"
              f"\n"
@@ -295,11 +316,84 @@ async def set_wallet(
     )
 
 @handle_error
+async def invoice_amount(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.invoice_amount.set()
+    await event.message.answer(
+        text="<i>Enter amount of the invoice:</i>",
+        reply_markup=HomeMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def deposit_balance(
+        event: Message,
+        state: FSMContext
+) -> None:
+    crypto_bot = AioCryptoPay(
+        token=settings.CRYPTOBOT_TOKEN,
+        network=Networks.MAIN_NET
+    )
+
+    try:
+        amount = float(
+            event.text
+        )
+        invoice = await crypto_bot.create_invoice(
+            amount=amount,
+            asset="USDT"
+        )
+    except:
+        return await event.answer(
+            text="<i>Invalid amount.</i>"
+        )
+
+    await event.answer(
+        text="<i>To deposit the balance, pay the invoice:</i>",
+        reply_markup=AdminMenu.pay_button(
+            amount=amount,
+            invoice_url=invoice.bot_invoice_url
+        ),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def weekly_report(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    response = requests.get(
+        url=f"{settings.BASE_API_URL}/admin/weekly_report"
+    ).json()["data"]
+
+    rows = response["rows"]
+    rows.insert(
+        0, response["values"]
+    )
+
+    with open("images/report.csv", mode='w', newline='') as file:
+        writer = csv.writer(
+            file
+        )
+        writer.writerows(rows)
+
+    await event.message.reply_document(
+        document=open(
+            "images/report.csv",
+            "rb"
+        ),
+        caption="📑 <i>Weekly Report:</i>",
+        reply_markup=AdminMenu.admin_menu(),
+        parse_mode="HTML"
+    )
+
+@handle_error
 async def accept_withdraw(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
-    print(event.message, event.message.message_id)
     withdrawal_id = event.data[:36]
 
     response = requests.post(
@@ -358,9 +452,7 @@ async def decline_withdraw(
                  "\n"
                  "Hello! We regret to inform you that your withdrawal request has been declined.\n"
                  "\n"
-                 "Please make sure to submit a valid <b>USDT-Ton</b> address provided by <b>Telegram Wallet</b> when applying for a withdrawal.\n"
-                 "\n"
-                 "For further questions, please join our channel.\n",
+                 "Please make sure you’ve activated your wallet in <a href='https://t.me/send'>Crypto Bot</a>.\n",
             reply_markup=HomeMenu.keyboard(),
             parse_mode="HTML"
         )
@@ -463,4 +555,22 @@ def register(
             equals=AdminMenu.admin_callback
         ),
         state=access_states
+    )
+    dp.register_callback_query_handler(
+        invoice_amount,
+        Text(
+            equals=CashierMenu.deposit_callback
+        ),
+        state=AdminStates.cashier
+    )
+    dp.register_message_handler(
+        deposit_balance,
+        state=AdminStates.invoice_amount
+    )
+    dp.register_callback_query_handler(
+        weekly_report,
+        Text(
+            equals=CashierMenu.weekly_report_callback
+        ),
+        state=AdminStates.cashier
     )

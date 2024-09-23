@@ -40,4 +40,34 @@ def decode_exception(exc: str):
         message=f"{exc.split('] ')[1].replace('_', ' ').capitalize()}."
     )
 
+def to_date(
+        timestamp: int
+) -> str:
 
+    pst = pytz.timezone(
+            'Asia/Singapore'
+        )
+
+    return str(datetime.fromtimestamp(
+        timestamp, pst
+    ))
+
+def month_start() -> int:
+
+    now = datetime.now()
+
+    return int(datetime(
+        now.year, now.month, 1
+    ).timestamp())
+
+def week_start() -> int:
+    now = datetime.now()
+
+    week_start = now - timedelta(
+        days=now.weekday()
+    )
+
+    return int(week_start.replace(
+        hour=0, minute=0, second=0, microsecond=0
+    ).timestamp()
+)

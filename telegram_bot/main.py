@@ -2,7 +2,7 @@ from aiogram import executor
 import random
 import requests
 import asyncio
-from keyboards.keyboards import WithdrawMenu
+from keyboards.keyboards import WithdrawMenu, HomeMenu
 from config import dp, settings, bot
 from handlers.events import register_events
 
@@ -22,8 +22,6 @@ async def check_transfers():
 
         if response.status_code == 200 and response.json()["status"] == 200:
 
-            print(response.json())
-
             for i, v in response.json()["data"].items():
                 if v["message_id"]:
                     withdrawal_data = v["request"]
@@ -40,15 +38,28 @@ async def check_transfers():
                                      f"<b>Requested Balance</b>: {withdrawal_data['amount']} USDT\n"
                                      f"\n"
                                      f"<b>Payment status</b>: Sent\n"
-                                     f"<b>Last activity</b>: {v['updated_at'] + random.randint(1, 10)}",
+                                     f"<b>Last activity</b>: {v['updated_at']}",
                                 reply_markup={},
+                                parse_mode="HTML"
+                            )
+                            await bot.send_message(
+                                chat_id=withdrawal_data["user_id"],
+                                text="✅ <b>Withdrawal Request Approved</b>\n"
+                                     "\n"
+                                     "Hello! Your withdrawal request has been successfully approved.\n"
+                                     "\n"
+                                     f"<b>Requested Amount</b>: {withdrawal_data['amount']} USDT\n"
+                                     "The funds will be transferred to your account shortly.\n"
+                                     "\n"
+                                     "For further questions, please join our channel.\n",
+                                reply_markup=HomeMenu.keyboard(),
                                 parse_mode="HTML"
                             )
                         except:
                             pass
                     elif v["status"] == "failed":
-                        requests.patch(
-                            url=f"{settings.BASE_API_URL}/reset_withdrawal?withdrawal_id={withdrawal_data['id']}"
+                        requests.post(
+                            url=f"{settings.BASE_API_URL}/admin/reset_withdrawal?withdrawal_id={withdrawal_data['id']}"
                         )
                         try:
                             await bot.edit_message_text(
@@ -62,7 +73,7 @@ async def check_transfers():
                                      f"<b>Requested Balance</b>: {withdrawal_data['amount']} USDT\n"
                                      f"\n"
                                      f"<b>Payment status</b>: Failed\n"
-                                     f"<b>Last activity</b>: {v['updated_at'] + random.randint(1, 10)}",
+                                     f"<b>Last activity</b>: {v['updated_at']}",
                                 reply_markup=WithdrawMenu.control(
                                     withdrawal_id=withdrawal_data["id"]
                                 ),

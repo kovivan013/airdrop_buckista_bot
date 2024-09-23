@@ -19,7 +19,6 @@ class BaseWithdrawal(BaseModel):
     id: str = ""
     user_id: int = 0
     admin_id: int = 0
-    ton_address: str = ""
     amount: float = 0
     status: str = "pending"
     created_at: int = 0

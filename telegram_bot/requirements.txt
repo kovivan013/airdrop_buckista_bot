@@ -8,7 +8,7 @@ asyncpg==0.29.0
 attrs==24.2.0
 Babel==2.9.1
 cached-property==1.5.2
-certifi==2024.8.30
+certifi==2023.11.17
 charset-normalizer==3.3.2
 click==8.1.7
 fastapi==0.112.2
@@ -36,3 +36,4 @@ typing_extensions==4.12.2
 urllib3==2.2.2
 uvicorn==0.30.6
 yarl==1.9.7
+aiocryptopay==0.4.5

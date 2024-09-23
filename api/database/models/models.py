@@ -78,10 +78,6 @@ class Withdrawals(Base):
         BigInteger,
         default=0
     )
-    ton_address: Mapped[String] = mapped_column(
-        String,
-        nullable=False
-    )
     amount: Mapped[Numeric] = mapped_column(
         Numeric,
         nullable=False
@@ -207,7 +203,7 @@ class CryptoTransactions(Base):
         primary_key=True,
         index=True
     )
-    withdrawals_id: Mapped[String] = mapped_column(
+    withdrawal_id: Mapped[String] = mapped_column(
         String,
         nullable=False
     )

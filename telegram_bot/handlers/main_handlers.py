@@ -149,7 +149,7 @@ async def user_balance(
              "\n"
              f"👥 <b>Friends Referred</b>: {len(response['referred_friends'])}\n"
              "\n"
-             "<i>Please note that your withdrawal requires the Telegram Wallet to be activated</i>"
+             "<i>Please note that your withdrawal requires the Crypto Bot Wallet to be activated</i>"
         ,
         reply_markup=WithdrawMenu.keyboard(),
         parse_mode="HTML"
@@ -292,12 +292,53 @@ async def ios_app_task(
         parse_mode="HTML"
     )
 
+# @handle_error
+# async def enter_ton_address(
+#         event: CallbackQuery,
+#         state: FSMContext
+# ) -> None:
+#     await ReferralStates.withdraw_address.set()
+#     response = requests.get(
+#         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}"
+#     ).json()["data"]
+#
+#     current_withdrawal = requests.post(
+#         url=f"{settings.BASE_API_URL}/user/current_withdrawal",
+#         json={
+#             "withdrawal_id": response['current_withdrawal']
+#         }
+#     ).json()
+#
+#     if current_withdrawal["status"] == 200 and current_withdrawal["data"]["status"] in ["pending", "declined"]:
+#         await state.finish()
+#         return await event.message.answer(
+#             text="❌ You cannot submit a new withdrawal request until your latest one has been processed. Thank you for your patience.",
+#             reply_markup=HomeMenu.keyboard(),
+#             parse_mode="Markdown"
+#         )
+#     elif float(response["balance"]) < 1:
+#         await state.finish()
+#         return await event.message.answer(
+#             text="❌ *Minimum withdrawal amount 1 USDT*",
+#             reply_markup=HomeMenu.keyboard(),
+#             parse_mode="Markdown"
+#         )
+#
+#     return await event.message.answer(
+#         text=f"💵 <b>Withdrawal Amount</b>: {response['balance']} USDT\n"
+#              "\n"
+#              "<i>We only accept USDT-TON address from your Telegram Wallet</i>\n"
+#              "\n"
+#              "Submit your <b>USDT-TON Address</b>\n",
+#         reply_markup=HomeMenu.keyboard(),
+#         parse_mode="HTML"
+#     )
+
 @handle_error
-async def enter_ton_address(
-        event: CallbackQuery,
+async def withdraw_balance(
+        event: Message,
         state: FSMContext
 ) -> None:
-    await ReferralStates.withdraw_address.set()
     response = requests.get(
         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}"
     ).json()["data"]
@@ -324,28 +365,14 @@ async def enter_ton_address(
             parse_mode="Markdown"
         )
 
-    return await event.message.answer(
-        text=f"💵 <b>Withdrawal Amount</b>: {response['balance']} USDT\n"
-             "\n"
-             "<i>We only accept USDT-TON address from your Telegram Wallet</i>\n"
-             "\n"
-             "Submit your <b>USDT-TON Address</b>\n",
-        reply_markup=HomeMenu.keyboard(),
-        parse_mode="HTML"
-    )
-
-@handle_error
-async def withdraw_balance(
-        event: Message,
-        state: FSMContext
-) -> None:
     withdrawal = requests.post(
         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/withdraw",
         # json={
         #     "ton_address": event.text
         # }
     ).json()["data"]
-    await event.answer(
+
+    await event.message.answer(
         text="✅ <b>Withdrawal Request Submitted</b>\n"
              "\n"
              "Your withdrawal request has been successfully submitted. 🎉\n"
@@ -427,15 +454,15 @@ def register(
         state=ReferralStates.submit_referral
     )
     dp.register_callback_query_handler(
-        enter_ton_address,
+        withdraw_balance,
         Text(
             WithdrawMenu.withdraw_callback
         )
     )
-    dp.register_message_handler(
-        withdraw_balance,
-        state=ReferralStates.withdraw_address
-    )
+    # dp.register_message_handler(
+    #     withdraw_balance,
+    #     state=ReferralStates.withdraw_address
+    # )
     dp.register_callback_query_handler(
         web_app_task,
         Text(
