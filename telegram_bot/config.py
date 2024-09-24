@@ -13,12 +13,10 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     ADMIN_PASSWORD: str
 
-    # BASE_API_URL: str = "http://18.199.174.253"
-    BASE_API_URL: str = "http://127.0.0.1:8000"
-    # AUTOPAYMENTS_URL: str = "http://127.0.0.1:8000"
+    BASE_API_URL: str = "http://3.120.205.78"
 
     CRYPTOBOT_TOKEN: str = ""
-    ADMINS_CHAT: int = -4556254373
+    ADMINS_CHAT: int = -1002430116586
 
 settings = Settings()
 storage = MemoryStorage()

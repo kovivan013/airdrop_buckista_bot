@@ -28,9 +28,7 @@ from common.dtos import (
 )
 from database.models.models import (
     Users,
-    Withdrawals,
-    TestWithdrawals,
-    CryptoWithdrawals
+    Withdrawals
 )
 from schemas.schemas import (
     BaseUser,
@@ -159,7 +157,7 @@ async def get_withdrawal(
     result = DataStructure()
 
     withdrawal = await session.get(
-        CryptoWithdrawals,
+        Withdrawals,
         parameters.withdrawal_id
     )
 
@@ -200,11 +198,11 @@ async def total_withdrawals(
 
     user_withdrawals = await session.execute(
         select(
-            CryptoWithdrawals
+            Withdrawals
         ).filter(
-            CryptoWithdrawals.user_id == telegram_id
+            Withdrawals.user_id == telegram_id
         ).filter(
-            CryptoWithdrawals.status == "sent"
+            Withdrawals.status == "sent"
         )
     )
 
@@ -429,7 +427,6 @@ async def completed_tasks(
 @user_router.post("/{telegram_id}/withdraw")
 async def withdraw_balance(
         telegram_id: int,
-        # parameters: BalanceWithdraw,
         request: Request,
         session: AsyncSession = Depends(
             core.create_sa_session
@@ -462,7 +459,7 @@ async def withdraw_balance(
     )
 
     session.add(
-        CryptoWithdrawals(
+        Withdrawals(
             **data_scheme.model_dump()
         )
     )

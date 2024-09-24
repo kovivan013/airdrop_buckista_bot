@@ -29,9 +29,7 @@ from common.dtos import (
 from database.models.models import (
     Users,
     Withdrawals,
-    TestWithdrawals,
-    CryptoWithdrawals,
-    CryptoTransactions
+    Transactions
 )
 from schemas.schemas import (
     BaseUser,
@@ -176,7 +174,7 @@ async def approve_withdrawal(
         )._report()
 
     withdrawal = await session.get(
-        CryptoWithdrawals,
+        Withdrawals,
         withdrawal_id
     )
 
@@ -237,7 +235,7 @@ async def decline_withdrawal(
         )._report()
 
     withdrawal = await session.get(
-        CryptoWithdrawals,
+        Withdrawals,
         withdrawal_id
     )
 
@@ -285,42 +283,44 @@ async def weekly_report(
 
     query = await session.execute(
         select(
-            CryptoTransactions
-        ).filter(
-            CryptoTransactions.timestamp > utils.timestamp() - 604800
+            Withdrawals
         )
     )
-    transactions = query.scalars().all()
+    withdrawals = query.scalars().all()
+
     rows: list = []
 
-    for transaction in transactions:
-        withdrawal = await session.get(
-            CryptoWithdrawals,
-            transaction.withdrawal_id
-        )
-        user = await session.get(
-            Users,
-            withdrawal.user_id
-        )
-        row = [
-            withdrawal.user_id,
-            user.username,
-            f"{withdrawal.amount} USDT",
-            withdrawal.status,
-            utils.to_date(
-                withdrawal.updated_at
-            )
-        ]
-        rows.append(
-            row
-        )
+    for withdrawal in withdrawals:
+
+        if withdrawal.created_at > utils.week_start() - 604800 and withdrawal.created_at < utils.week_start():
+
+            status_values: dict = {
+                "sent": "Sent",
+                "declined": "Failed",
+                "pending": "Open"
+            }
+
+            if withdrawal.status in status_values:
+
+                row = [
+                    withdrawal.user_id,
+                    withdrawal.amount,
+                    status_values[
+                        withdrawal.status
+                    ],
+                    utils.to_date(
+                        withdrawal.updated_at or withdrawal.created_at
+                    )
+                ]
+                rows.append(
+                    row
+                )
 
     await session.close()
 
     result.data = {
         "values": [
             "User ID",
-            "Username",
             "Withdrawal Amount",
             "Payment Status",
             "Last Change"
@@ -342,7 +342,7 @@ async def cashier_statistics(
 
     query = await session.execute(
         select(
-            CryptoTransactions
+            Transactions
         )
     )
     transactions = query.scalars().all()
@@ -355,19 +355,22 @@ async def cashier_statistics(
 
     for transaction in transactions:
         withdrawal = await session.get(
-            CryptoWithdrawals,
+            Withdrawals,
             transaction.withdrawal_id
         )
-        amount = float(
-            withdrawal.amount
-        )
 
-        total_transfer += amount
+        if withdrawal:
 
-        if transaction.timestamp >= month_start:
-            this_month += amount
-        if transaction.timestamp >= week_start:
-            this_week += amount
+            amount = float(
+                withdrawal.amount
+            )
+
+            total_transfer += amount
+
+            if transaction.timestamp >= month_start:
+                this_month += amount
+            if transaction.timestamp >= week_start:
+                this_week += amount
 
     await session.close()
 
@@ -411,9 +414,9 @@ async def transfer_funds(
 
     query = await session.execute(
         select(
-            CryptoWithdrawals
+            Withdrawals
         ).filter(
-            CryptoWithdrawals.status == "approved"
+            Withdrawals.status == "approved"
         ).limit(10)
     )
     withdrawals = query.scalars().all()
@@ -432,7 +435,7 @@ async def transfer_funds(
                 spend_id=spend_id
             )
             session.add(
-                CryptoTransactions(
+                Transactions(
                     **BaseTransaction(
                         transfer_id=transfer_response.transfer_id,
                         withdrawal_id=withdrawal.id,
@@ -492,7 +495,7 @@ async def transfer_failed(
     result = DataStructure()
 
     withdrawal = await session.get(
-        CryptoWithdrawals,
+        Withdrawals,
         withdrawal_id
     )
 
@@ -527,7 +530,6 @@ async def transfer_failed(
     await session.commit()
     await session.close()
 
-    # result.data = withdrawal.as_dict()
     result._status = HTTPStatus.HTTP_200_OK
 
     return result

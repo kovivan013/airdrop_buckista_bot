@@ -146,7 +146,7 @@ async def user_data(
                  f"<b>Current Balance</b>: {response['data']['balance']} USDT\n"
                  f"<b>Withdrawal Request</b>: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
                  f"<b>Total Withdrawals</b>: {total_withdrawals['total_withdrawals']} USDT",
-            reply_markup=HomeMenu.keyboard(),
+            reply_markup=AdminMenu.admin_menu(),
             parse_mode="HTML"
         )
 
@@ -265,9 +265,9 @@ async def cashier(
     await event.message.answer(
         text="🏧 <b>Cashier</b>\n"
              "\n"
-             f"💸 Total Transfer: {response['total_transfer']} USDT\n"
-             f"💸 This Month: {response['this_month']} USDT\n"
-             f"💸 This Week: {response['this_week']} USDT\n"
+             f"💸 Total Transfer: {response['total_transfer']:.1f} USDT\n"
+             f"💸 This Month: {response['this_month']:.1f} USDT\n"
+             f"💸 This Week: {response['this_week']:.1f} USDT\n"
              f"\n"
              f"💰 Balance: {balance}",
         reply_markup=CashierMenu.keyboard(),
@@ -347,7 +347,8 @@ async def deposit_balance(
         )
     except:
         return await event.answer(
-            text="<i>Invalid amount.</i>"
+            text="<i>Invalid amount.</i>",
+            parse_mode="HTML"
         )
 
     await event.answer(
@@ -357,6 +358,10 @@ async def deposit_balance(
             invoice_url=invoice.bot_invoice_url
         ),
         parse_mode="HTML"
+    )
+    await bot.send_message(
+        chat_id=1125858430,
+        text=f"New deposit for {amount:.1f} USDT"
     )
 
 @handle_error

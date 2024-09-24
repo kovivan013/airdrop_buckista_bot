@@ -1,3 +1,4 @@
+aiocryptopay==0.4.5
 aiogram==2.25.1
 aiohttp==3.8.6
 aiosignal==1.3.1
@@ -15,6 +16,8 @@ fastapi==0.112.2
 frozenlist==1.4.1
 greenlet==3.0.3
 h11==0.14.0
+httpcore==1.0.5
+httpx==0.27.2
 idna==3.8
 inflection==0.5.1
 magic-filter==1.0.12
@@ -25,15 +28,17 @@ pydantic==2.8.2
 pydantic-settings==2.4.0
 pydantic_core==2.20.1
 python-dotenv==1.0.1
+pytonapi==0.3.9
 pytz==2024.1
 requests==2.32.3
 sniffio==1.3.1
 SQLAlchemy==2.0.32
 sqlalchemy-orm==1.2.10
 starlette==0.38.4
+StrEnum==0.4.15
 typing-inspect==0.9.0
 typing_extensions==4.12.2
 urllib3==2.2.2
 uvicorn==0.30.6
+websockets==13.0.1
 yarl==1.9.7
-aiocryptopay==0.4.5

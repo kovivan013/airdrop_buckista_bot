@@ -6,7 +6,6 @@ from keyboards.keyboards import WithdrawMenu, HomeMenu
 from config import dp, settings, bot
 from handlers.events import register_events
 
-# DEPLOY UPDATE HELPERS CHAT, TEST_WITHDRAWALS, IP ADDRESS
 
 register_events()
 
@@ -34,7 +33,6 @@ async def check_transfers():
                                      "\n"
                                      f"<b>User ID</b>: {withdrawal_data['user_id']}\n"
                                      f"<b>Username</b>: {withdrawal_data['username']}\n"
-                                     # f"<b>TON Wallet Address</b>: {withdrawal_data['ton_address']}\n"
                                      f"<b>Requested Balance</b>: {withdrawal_data['amount']} USDT\n"
                                      f"\n"
                                      f"<b>Payment status</b>: Sent\n"
@@ -69,7 +67,6 @@ async def check_transfers():
                                      "\n"
                                      f"<b>User ID</b>: {withdrawal_data['user_id']}\n"
                                      f"<b>Username</b>: {withdrawal_data['username']}\n"
-                                     # f"<b>TON Wallet Address</b>: {withdrawal_data['ton_address']}\n"
                                      f"<b>Requested Balance</b>: {withdrawal_data['amount']} USDT\n"
                                      f"\n"
                                      f"<b>Payment status</b>: Failed\n"
