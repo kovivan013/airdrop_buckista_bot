@@ -5,7 +5,8 @@ from pydantic import BaseModel
 from schemas.schemas import (
     BaseUser,
     BaseWithdrawal,
-    BaseTransaction
+    BaseTransaction,
+    BasePretzelTask
 )
 from sqlalchemy.orm import (
     mapped_column,
@@ -105,6 +106,48 @@ class Withdrawals(Base):
             self.as_dict()
         )
 
+
+class PretzelTasks(Base):
+
+    id: Mapped[String] = mapped_column(
+        String,
+        primary_key=True,
+        index=True
+    )
+    user_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    task: Mapped[String] = mapped_column(
+        String,
+        nullable=False
+    )
+    payload: Mapped[String] = mapped_column(
+        String,
+        nullable=False
+    )
+    status: Mapped[String] = mapped_column(
+        String,
+        nullable=False,
+        default="pending"
+    )
+    created_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    updated_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    message_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BasePretzelTask]:
+        return BasePretzelTask().model_validate(
+            self.as_dict()
+        )
 
 class Transactions(Base):
 

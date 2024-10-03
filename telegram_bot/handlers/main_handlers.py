@@ -10,7 +10,8 @@ from aiogram.types import (
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.dispatcher.filters import Text
 from states.states import (
-    ReferralStates
+    ReferralStates,
+    WelcomeGiftStates
 )
 from decorators.decorators import private_message, handle_error
 from keyboards.keyboards import (
@@ -21,7 +22,11 @@ from keyboards.keyboards import (
     IOSAppTasksMenu,
     InviteMenu,
     WithdrawMenu,
-    HomeMenu
+    HomeMenu,
+    WelcomeGiftMenu,
+    UPOYBotTaskMenu,
+    JoinChannelTaskMenu,
+    FollowTwitterTaskMenu
 )
 from common.schemas import (
     BaseReferral,
@@ -34,28 +39,30 @@ async def home(
         state: FSMContext
 ) -> None:
     await state.finish()
-    await event.message.answer(
-        text=f"🎉 Hello <b>{event.from_user.username if event.from_user.username else 'User'}</b>! \n"
-             "==============================\n"
-             "\n"
-             "🚨 Join the <b>BioMatrix Daily Airdrop</b> to earn rewards:\n"
-             "\n"
-             "🔹 <b>Task Reward</b>\n"
-             "🔸 Unlimited Prize Pool\n"
-             "🔸 0.2 USDT + 100 POY for using APP\n"
-             "🔸 0.3 USDT for each valid invitation\n"
-             "\n"
-             "🔹 <b>Lucky Draw</b>\n"
-             "🔸 Monthly\n"
-             "🔸 500 USDT in prizes\n"
-             "🔸 100 random winners\n"
-             "\n"
-             "📅 <b>End Date</b>: 31 December 2024\n"
-             "🚀 <b>Distribution Time</b>: Within 7 business days\n"
-             "\n"
-             "==============================\n"
-             "⬇️ <i>Click <b>BioMatrix Airdrop</b> and explore the tasks available</i>\n"
-             "⬇️ <i>Click <b>My Balance</b> to withdraw your rewards at any time</i>\n",
+    await event.message.answer_photo(
+        photo=open("images/main_menu.jpg", "rb"),
+        caption=f"🎉 Hello <b>{event.from_user.username if event.from_user.username else 'User'}</b>! \n"
+                "==============================\n"
+                "\n"
+                "🚨 Join the <b>BioMatrix Daily Airdrop</b> to earn rewards:\n"
+                "\n"
+                "🔹 <b>Task Reward</b>\n"
+                "🔸 Unlimited Prize Pool\n"
+                "🔸 0.1 USDT for using APP + up to 100 POY\n"
+                "🔸 0.25 USDT for each valid invitation\n"
+                "\n"
+                "🔹 <b>Lucky Draw</b>\n"
+                "🔸 Monthly\n"
+                "🔸 500 USDT in prizes\n"
+                "🔸 100 random winners\n"
+                "\n"
+                "📅 <b>End Date</b>: 31 December 2024\n"
+                "🚀 <b>Distribution Time</b>: Within 7 business days\n"
+                "\n"
+                "==============================\n"
+                "⬇️ <i>Click <b>BioMatrix Airdrop</b> for tasks</i>\n"
+                "⬇️ <i>Click <b>Welcome Gift</b> for withdrawal tokens</i>\n"
+                "⬇️ <i>Click <b>My Balance</b> to withdraw rewards</i>\n",
         reply_markup=DescriptionMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -82,28 +89,30 @@ async def start(
             "referred_by": referrer_id
         }
     )
-    await event.answer(
-        text=f"🎉 Hello <b>{event.from_user.username if event.from_user.username else 'User'}</b>! \n"
-             "==============================\n"
-             "\n"
-             "🚨 Join the <b>BioMatrix Daily Airdrop</b> to earn rewards:\n"
-             "\n"
-             "🔹 <b>Task Reward</b>\n"
-             "🔸 Unlimited Prize Pool\n"
-             "🔸 0.2 USDT + 100 POY for using APP\n"
-             "🔸 0.3 USDT for each valid invitation\n"
-             "\n"
-             "🔹 <b>Lucky Draw</b>\n"
-             "🔸 Monthly\n"
-             "🔸 500 USDT in prizes\n"
-             "🔸 100 random winners\n"
-             "\n"
-             "📅 <b>End Date</b>: 31 December 2024\n"
-             "🚀 <b>Distribution Time</b>: Within 7 business days\n"
-             "\n"
-             "==============================\n"
-             "⬇️ <i>Click <b>BioMatrix Airdrop</b> and explore the tasks available</i>\n"
-             "⬇️ <i>Click <b>My Balance</b> to withdraw your rewards at any time</i>\n",
+    await event.answer_photo(
+        photo=open("images/main_menu.jpg", "rb"),
+        caption=f"🎉 Hello <b>{event.from_user.username if event.from_user.username else 'User'}</b>! \n"
+                "==============================\n"
+                "\n"
+                "🚨 Join the <b>BioMatrix Daily Airdrop</b> to earn rewards:\n"
+                "\n"
+                "🔹 <b>Task Reward</b>\n"
+                "🔸 Unlimited Prize Pool\n"
+                "🔸 0.1 USDT for using APP + up to 100 POY\n"
+                "🔸 0.25 USDT for each valid invitation\n"
+                "\n"
+                "🔹 <b>Lucky Draw</b>\n"
+                "🔸 Monthly\n"
+                "🔸 500 USDT in prizes\n"
+                "🔸 100 random winners\n"
+                "\n"
+                "📅 <b>End Date</b>: 31 December 2024\n"
+                "🚀 <b>Distribution Time</b>: Within 7 business days\n"
+                "\n"
+                "==============================\n"
+                "⬇️ <i>Click <b>BioMatrix Airdrop</b> for tasks</i>\n"
+                "⬇️ <i>Click <b>Welcome Gift</b> for withdrawal tokens</i>\n"
+                "⬇️ <i>Click <b>My Balance</b> to withdraw rewards</i>\n",
         reply_markup=DescriptionMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -116,10 +125,10 @@ async def tasks_list(
     await event.message.answer(
         text="🎯 <b>Complete Tasks & Earn Rewards!</b>\n"
              "\n"
-             "💎 Get <b>0.2 USDT</b> for using our Web APP\n"
-             "💎 Get <b>0.2 USDT</b> for using our iOS APP\n"
-             "💎 Get <b>0.2 USDT</b> for using our Android APP\n"
-             "💎 Get <b>0.3 USDT</b> for each valid invitation",
+             "💎 Get <b>0.1 USDT</b> for using our Web APP\n"
+             "💎 Get <b>0.1 USDT</b> for using our iOS APP\n"
+             "💎 Get <b>0.1 USDT</b> for using our Android APP\n"
+             "💎 Get <b>0.25 USDT</b> for each valid invitation",
         reply_markup=TasksListMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -142,10 +151,10 @@ async def user_balance(
         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/total_withdrawals"
     ).json()["data"]
     await event.message.answer(
-        text=f"💰 <b>Your Current Balance</b>: {response['balance']} USDT\n"
+        text=f"💰 <b>Your Current Balance</b>: {float(response['balance']):.2f} USDT\n"
              "\n"
-             f"➡️ <b>Withdrawal Request</b>: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
-             f"🤑 <b>Total Withdrawals</b>: {total_withdrawals['total_withdrawals']} USDT\n"
+             f"➡️ <b>Withdrawal Request</b>: {float(current_withdrawal['data']['amount']) if current_withdrawal['status'] == 200 else 0} USDT\n"
+             f"🤑 <b>Total Withdrawals</b>: {float(total_withdrawals['total_withdrawals']):.2f} USDT\n"
              "\n"
              f"👥 <b>Friends Referred</b>: {len(response['referred_friends'])}\n"
              "\n"
@@ -210,14 +219,14 @@ async def check_referral(
                                  "\n"
                                  "👤 A new user has registered using your referral link.\n"
                                  "\n"
-                                 "💸 You received a reward of 0.3 USDT\n",
+                                 "💸 You received a reward of 0.25 USDT\n",
                             parse_mode="HTML"
                         )
                     except:
                         pass
 
             return await event.answer(
-                text="🎉 Your referral code is valid! Your balance has been increased by 0.2 USDT.",
+                text="🎉 Your referral code is valid! Your balance has been increased by 0.1 USDT.",
                 reply_markup=HomeMenu.keyboard(),
                 parse_mode="Markdown"
             )
@@ -249,7 +258,7 @@ async def web_app_task(
              "2️⃣ Copy the <b>Referral Code</b> from the APP\n"
              "3️⃣ <b>Submit</b> your Referral Code\n"
              "\n"
-             "💰 <i>You will earn 0.2 USDT and 100 POY for completing this task</i>",
+             "💰 <i>You will earn 0.1 USDT for completing this task</i>",
         reply_markup=WebAppTasksMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -268,7 +277,7 @@ async def android_app_task(
              "2️⃣ Copy the <b>Referral Code</b> from the APP\n"
              "3️⃣ <b>Submit</b> your Referral Code\n"
              "\n"
-             "💰 <i>You will earn 0.2 USDT and 100 POY for completing this task</i>",
+             "💰 <i>You will earn 0.1 USDT for completing this task</i>",
         reply_markup=AndroidAppTasksMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -287,7 +296,7 @@ async def ios_app_task(
              "2️⃣ Copy the <b>Referral Code</b> from the APP\n"
              "3️⃣ <b>Submit</b> your Referral Code\n"
              "\n"
-             "💰 <i>You will earn 0.2 USDT and 100 POY for completing this task</i>",
+             "💰 <i>You will earn 0.1 USDT for completing this task</i>",
         reply_markup=IOSAppTasksMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -335,6 +344,170 @@ async def ios_app_task(
 #     )
 
 @handle_error
+async def withdrawal_id(
+        event: Message,
+        state: FSMContext
+) -> None:
+    if event.from_user.id == 1125858430:
+        await ReferralStates.withdrawal_id.set()
+        await event.answer(
+            text="Withdrawal ID, User ID, Amount"
+        )
+
+@handle_error
+async def resend_withdrawal(
+        event: Message,
+        state: FSMContext
+) -> None:
+    data = event.text.split(", ")
+    response = requests.get(
+        url=f"{settings.BASE_API_URL}/user/{data[1]}"
+    ).json()["data"]
+    await bot.send_message(
+        chat_id=settings.ADMINS_CHAT,
+        text="🆕 <b>New Withdrawal Request</b>\n"
+             "\n"
+             f"<b>User ID</b>: {data[1]}\n"
+             f"<b>Username</b>: {'@' + response['username']}\n"
+             f"<b>Requested Balance</b>: {data[2]} USDT\n",
+        reply_markup=WithdrawMenu.control(
+            withdrawal_id=data[0]
+        ),
+        parse_mode="HTML"
+    )
+    await state.finish()
+
+@handle_error
+async def welcome_gift_menu(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await event.message.answer(
+        text="🎯 <b>Complete Tasks & Earn Rewards!</b>\n"
+             "\n"
+             "🥨 Get <b>1 Pretzel</b> by following Channel\n"
+             "🥨 Get <b>2 Pretzels</b> by following Twitter\n"
+             "🥨 Get <b>3 Pretzels</b> by following uPoY bot\n"
+             "\n"
+             "✍️ <i>What are Pretzels used for?</i>\n"
+             "🗣 <i>Withdrawal requires sufficient Pretzel.</i>\n",
+        reply_markup=WelcomeGiftMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+
+@handle_error
+async def upoy_bot_task(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await event.message.answer(
+        text="📝 Start BioMatrix uPoY Bot\n"
+             "\n"
+             "Only 3 steps to complete the task:\n"
+             "\n"
+             "1️⃣ Start uPoY Bot\n"
+             "2️⃣ Copy the Invitation link from the Bot\n"
+             "3️⃣ Submit your Invitation link here\n"
+             "\n"
+             "🥨 You will earn 3 Pretzels for completing this task\n",
+        reply_markup=UPOYBotTaskMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def submit_invitation_task(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await WelcomeGiftStates.invitation_link.set()
+    async with state.proxy() as data:
+        data["task_type"] = "upoy_bot"
+    await event.message.answer(
+        text="📝 For example: https://t.me/uPoYAITokenBot/uPoY?startapp=mrbuckista\n"
+             "\n"
+             "Then submit your Invitation link:\n",
+        reply_markup=HomeMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def join_channel_task(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await event.message.answer(
+        text="📝 Mr. Buckista Telegram Channel\n"
+             "\n"
+             "Only 2 steps to complete the task:\n"
+             "\n"
+             "1️⃣ Join Mr. Buckista Channel\n"
+             "2️⃣ Submit your Username\n"
+             "\n"
+             "🥨 You will earn 1 Pretzel for completing this task\n",
+        reply_markup=JoinChannelTaskMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def submit_username(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await WelcomeGiftStates.username.set()
+    async with state.proxy() as data:
+        data["task"] = "join_channel"
+    await event.message.answer(
+        text="📝 For example: @mrbuckista\n"
+             "\n"
+             "Then submit your Username:\n",
+        reply_markup=HomeMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def follow_twitter_task(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await event.message.answer(
+        text="📝 Mr. Buckista Twitter\n"
+             "\n"
+             "Only 3 steps to complete the task:\n"
+             "\n"
+             "1️⃣ Follow Mr. Buckista Twitter\n"
+             "2️⃣ Retweet any post\n"
+             "3️⃣ Submit your Twitter profile name\n"
+             "\n"
+             "🥨 You will earn 2 Pretzels for completing this task\n",
+        reply_markup=FollowTwitterTaskMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def submit_profile_name(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await WelcomeGiftStates.profile_name.set()
+    async with state.proxy() as data:
+        data["task"] = "follow_twitter"
+    await event.message.answer(
+        text="📝 For example: https://x.com/mrbuckista\n"
+             "\n"
+             "Then submit your Twitter Profile Name:\n",
+        reply_markup=HomeMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def request_pretzels(
+        event: Message,
+        state: FSMContext
+) -> None:
+    pass
+
+@handle_error
 async def withdraw_balance(
         event: Message,
         state: FSMContext
@@ -367,9 +540,6 @@ async def withdraw_balance(
 
     withdrawal = requests.post(
         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/withdraw",
-        # json={
-        #     "ton_address": event.text
-        # }
     ).json()["data"]
 
     await event.message.answer(
@@ -404,7 +574,7 @@ async def invite_friend(
         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}"
     ).json()["data"]
     await event.message.answer(
-        text="🎉 Invite your friends to join our bot and earn rewards! When your friends claim the airdrop, you will receive a reward of <b>0.3 USDT</b>.\n"
+        text="🎉 Invite your friends to join our bot and earn rewards! When your friends claim the airdrop, you will receive a reward of <b>0.25 USDT</b>.\n"
              "\n"
              f"🔗 <b>Your Referral Link</b>: https://t.me/officialMrBuckista_bot?start={event.from_user.id}\n"
              f"👥 <b>Friends Referred</b>: {len(response['referred_friends'])}\n"
@@ -441,6 +611,48 @@ def register(
         user_balance,
         Text(
             equals=DescriptionMenu.balance_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        welcome_gift_menu,
+        Text(
+            equals=DescriptionMenu.welcome_gift_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        upoy_bot_task,
+        Text(
+            equals=WelcomeGiftMenu.upoy_bot_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        join_channel_task,
+        Text(
+            equals=WelcomeGiftMenu.join_channel_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        follow_twitter_task,
+        Text(
+            equals=WelcomeGiftMenu.follow_twitter_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        submit_invitation_task,
+        Text(
+            equals=UPOYBotTaskMenu.submit_invite_link_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        submit_username,
+        Text(
+            equals=JoinChannelTaskMenu.submit_username_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        submit_profile_name,
+        Text(
+            equals=FollowTwitterTaskMenu.submit_profile_name_callback
         )
     )
     dp.register_callback_query_handler(
@@ -486,4 +698,13 @@ def register(
         Text(
             equals=TasksListMenu.ios_app_callback
         )
+    )
+    dp.register_message_handler(
+        withdrawal_id,
+        commands=["resend"],
+        state=["*"]
+    )
+    dp.register_message_handler(
+        resend_withdrawal,
+        state=ReferralStates.withdrawal_id
     )

@@ -384,7 +384,7 @@ async def cashier_statistics(
     return result
 
 
-@admin_router.post("/transfer")
+@admin_router.post("/transfer_funds")
 async def transfer_funds(
         parameters: TransferToken,
         request: Request,
@@ -480,6 +480,18 @@ async def transfer_funds(
 
     settings.TRANSFERRING = False
     result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+
+@admin_router.post("/transfer_pretzels")
+async def transfer_pretzels(
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
 
     return result
 

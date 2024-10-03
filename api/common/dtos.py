@@ -21,3 +21,9 @@ class WithdrawalStatus(BaseModel):
 class TransferToken(BaseModel):
 
     token: str = ""
+
+
+class CompletePretzelTask(BaseModel):
+
+    task: str = ""
+    payload: str = ""

@@ -13,7 +13,7 @@ async def check_transfers():
     while True:
         await asyncio.sleep(5)
         response = requests.post(
-            url=f"{settings.BASE_API_URL}/admin/transfer",
+            url=f"{settings.BASE_API_URL}/admin/transfer_funds",
             json={
                 "token": settings.CRYPTOBOT_TOKEN
             }
@@ -79,11 +79,15 @@ async def check_transfers():
                         except:
                             pass
 
-
+async def check_pretzel_tasks():
+    pass
 
 async def on_startup(_) -> None:
     asyncio.create_task(
         check_transfers()
+    )
+    asyncio.create_task(
+
     )
     print("Bot started")
 

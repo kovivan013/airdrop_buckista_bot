@@ -13,10 +13,11 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     ADMIN_PASSWORD: str
 
-    BASE_API_URL: str = "http://3.120.205.78"
+    BASE_API_URL: str = "http://api.buckista.com"
 
     CRYPTOBOT_TOKEN: str = ""
     ADMINS_CHAT: int = -1002430116586
+    PRETZELS_CHAT: int = -1002299302859
 
 settings = Settings()
 storage = MemoryStorage()

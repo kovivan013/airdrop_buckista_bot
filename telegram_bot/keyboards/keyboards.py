@@ -55,27 +55,27 @@ class HomeMenu(Base):
 class DescriptionMenu:
 
     airdrop: str = "BioMatrix Airdrop"
-    join_channel: str = "Join Channel"
+    welcome_gift: str = "Welcome Gift"
     balance: str = "My Balance"
 
     airdrop_callback: str = "airdrop_callback"
-    join_channel_link: str = "https://t.me/mrbuckista"
+    welcome_gift_callback: str = "welcome_gift_callback"
     balance_callback: str = "balance_callback"
 
     @classmethod
     def keyboard(cls) -> Union[InlineKeyboardMarkup]:
-        keyboard = default_inline_keyboard()
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
 
         keyboard.add(
             InlineKeyboardButton(
                 text=cls.airdrop,
                 callback_data=cls.airdrop_callback
-            )
-        )
-        keyboard.add(
+            ),
             InlineKeyboardButton(
-                text=cls.join_channel,
-                url=cls.join_channel_link
+                text=cls.welcome_gift,
+                callback_data=cls.welcome_gift_callback
             ),
             InlineKeyboardButton(
                 text=cls.balance,
@@ -85,6 +85,39 @@ class DescriptionMenu:
 
         return keyboard
 
+
+class WelcomeGiftMenu:
+
+    upoy_bot: str = "uPoY Bot"
+    join_channel: str = "Join Channel"
+    follow_twitter: str = "Follow Twitter"
+
+    upoy_bot_callback: str = "upoy_bot_callback"
+    join_channel_callback: str = "join_channel_callback"
+    follow_twitter_callback: str = "follow_twitter_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.upoy_bot,
+                callback_data=cls.upoy_bot_callback
+            ),
+            InlineKeyboardButton(
+                text=cls.join_channel,
+                callback_data=cls.join_channel_callback
+            ),
+            InlineKeyboardButton(
+                text=cls.follow_twitter,
+                callback_data=cls.follow_twitter_callback
+            )
+        )
+
+        return keyboard
 
 class TasksListMenu(Base):
 
@@ -202,6 +235,90 @@ class IOSAppTasksMenu(Base):
             InlineKeyboardButton(
                 text=cls.check_referral,
                 callback_data=cls.check_referral_callback
+            )
+        )
+
+        return keyboard
+
+
+class UPOYBotTaskMenu(Base):
+
+    start_bot: str = "Start uPoY Bot"
+    submit_link: str = "Submit my Invitation Link"
+
+    bot_link: str = "https://t.me/uPoYAITokenBot/uPoY?startapp=ref_IZCwami4"
+    submit_invite_link_callback: str = "submit_invite_link_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.start_bot,
+                url=cls.bot_link
+            ),
+            InlineKeyboardButton(
+                text=cls.submit_link,
+                callback_data=cls.submit_invite_link_callback
+            )
+        )
+
+        return keyboard
+
+
+class JoinChannelTaskMenu(Base):
+
+    go_to_channel: str = "Go to our Channel"
+    submit_username: str = "Submit my Username"
+
+    channel_link: str = "https://t.me/mrbuckista"
+    submit_username_callback: str = "submit_username_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.go_to_channel,
+                url=cls.channel_link
+            ),
+            InlineKeyboardButton(
+                text=cls.submit_username,
+                callback_data=cls.submit_username_callback
+            )
+        )
+
+        return keyboard
+
+
+class FollowTwitterTaskMenu(Base):
+
+    go_to_twitter: str = "Go to our Twitter"
+    submit_profile_name: str = "Submit my Profile Name"
+
+    twitter_link: str = "https://x.com/mrbuckista"
+    submit_profile_name_callback: str = "submit_profile_name_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.go_to_twitter,
+                url=cls.twitter_link
+            ),
+            InlineKeyboardButton(
+                text=cls.submit_profile_name,
+                callback_data=cls.submit_profile_name_callback
             )
         )
 

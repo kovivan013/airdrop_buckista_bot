@@ -18,6 +18,14 @@ class AdminStates(StatesGroup):
 
 class ReferralStates(StatesGroup):
 
+    withdrawal_id = State()
     submit_referral = State()
     checked_code = State()
     withdraw_address = State()
+
+
+class WelcomeGiftStates(StatesGroup):
+
+    invitation_link = State()
+    username = State()
+    profile_name = State()

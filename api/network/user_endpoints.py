@@ -24,15 +24,18 @@ from database.core import (
 from common.dtos import (
     UserCreate,
     # BalanceWithdraw,
-    WithdrawalStatus
+    WithdrawalStatus,
+    CompletePretzelTask
 )
 from database.models.models import (
     Users,
-    Withdrawals
+    Withdrawals,
+    PretzelTasks
 )
 from schemas.schemas import (
     BaseUser,
-    BaseWithdrawal
+    BaseWithdrawal,
+    BasePretzelTask
 )
 from services import exceptions
 from schemas.base import DataStructure
@@ -335,7 +338,7 @@ async def complete_task(
         "completed_at": utils.timestamp()
     }
     user.balance += Decimal(
-        0.2
+        0.1
     )
 
     if not task_id:
@@ -349,7 +352,7 @@ async def complete_task(
 
             if referrer:
                 referrer.balance += Decimal(
-                    0.3
+                    0.25
                 )
                 reward = True
                 referrer.referred_friends = referrer.referred_friends + [telegram_id]
@@ -377,6 +380,48 @@ async def complete_task(
         }
     }
     result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+
+@user_router.post("/{telegram_id}/pretzels_task")
+async def pretzels_task(
+        telegram_id: int,
+        parameters: CompletePretzelTask,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    user = await session.get(
+        Users,
+        telegram_id
+    )
+
+    if not user:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="User not found"
+        )._report()
+
+    tasks: list = [i["title"] for i in BasePretzelTask().model_dump()]
+
+    if parameters.task not in tasks:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Task is not found."
+        )
+
+    result.data = {
+        "user_id": user.telegram_id,
+        "username": f"@{user.username}" if user.username else "None",
+        "task": BasePretzelTask().model_dump()[
+            parameters.task
+        ]["title"],
+        "payload": parameters.payload
+    }
 
     return result
 

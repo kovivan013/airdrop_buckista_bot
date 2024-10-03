@@ -37,3 +37,40 @@ class CryptoFactoryException(BaseModel):
 
     status: int = 200
     message: str = ""
+
+
+class UPOYBotTask(BaseModel):
+
+    title: str = "uPoY Bot"
+    reward: int = 3
+
+
+class JoinChannelTask(BaseModel):
+
+    title: str = "Join Channel"
+    reward: int = 1
+
+
+class FollowTwitterTask(BaseModel):
+
+    title: str = "Follow Twitter"
+    reward: int = 2
+
+
+class BasePretzelTask(BaseModel):
+
+    id: str = ""
+    user_id: int = 0
+    task: str = ""
+    payload: str = ""
+    status: str = "pending"
+    created_at: int = 0
+    updated_at: int = 0
+    message_id: int = 0
+
+
+class PretzelRewards(BaseModel):
+
+    upoy_bot: UPOYBotTask = UPOYBotTask()
+    join_channel: JoinChannelTask = JoinChannelTask()
+    follow_twitter: FollowTwitterTask = FollowTwitterTask()
