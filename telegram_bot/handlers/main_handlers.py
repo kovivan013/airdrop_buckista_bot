@@ -13,7 +13,12 @@ from states.states import (
     ReferralStates,
     WelcomeGiftStates
 )
-from decorators.decorators import private_message, handle_error
+from decorators.decorators import (
+    private_message,
+    handle_error,
+    check_pretzel_task,
+    check_payload
+)
 from keyboards.keyboards import (
     DescriptionMenu,
     TasksListMenu,
@@ -26,7 +31,8 @@ from keyboards.keyboards import (
     WelcomeGiftMenu,
     UPOYBotTaskMenu,
     JoinChannelTaskMenu,
-    FollowTwitterTaskMenu
+    FollowTwitterTaskMenu,
+    PretzelsMenu
 )
 from common.schemas import (
     BaseReferral,
@@ -151,14 +157,23 @@ async def user_balance(
         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/total_withdrawals"
     ).json()["data"]
     await event.message.answer(
-        text=f"💰 <b>Your Current Balance</b>: {float(response['balance']):.2f} USDT\n"
+        text=f"🪪 <b>UserID</b>: {event.from_user.id}\n"
+             f"\n"
+             f"💰 <b>Your Current Balance</b>: {float(response['balance']):.2f} USDT\n"
              "\n"
              f"➡️ <b>Withdrawal Request</b>: {float(current_withdrawal['data']['amount']) if current_withdrawal['status'] == 200 else 0} USDT\n"
              f"🤑 <b>Total Withdrawals</b>: {float(total_withdrawals['total_withdrawals']):.2f} USDT\n"
              "\n"
-             f"👥 <b>Friends Referred</b>: {len(response['referred_friends'])}\n"
+             f"🧢 <b>Friends Referred</b>: {len(response['referred_friends'])}\n"
+             f"🥨 <b>Pretzel</b>: {response['pretzels']['balance']}\n"
              "\n"
-             "<i>Please note that your withdrawal requires the Crypto Bot Wallet to be activated</i>"
+             "==============================\n"
+             "<i>Withdrawal Notice:</i>\n"
+             "\n"
+             "- <i>Crypto Bot Wallet activation required</i>\n"
+             "- <i>Minimum amount is 1 USDT</i>\n"
+             "- <i>Sufficient Pretzel needed</i>\n"
+
         ,
         reply_markup=WithdrawMenu.keyboard(),
         parse_mode="HTML"
@@ -387,7 +402,7 @@ async def welcome_gift_menu(
              "\n"
              "🥨 Get <b>1 Pretzel</b> by following Channel\n"
              "🥨 Get <b>2 Pretzels</b> by following Twitter\n"
-             "🥨 Get <b>3 Pretzels</b> by following uPoY bot\n"
+             # "🥨 Get <b>3 Pretzels</b> by following uPoY bot\n"
              "\n"
              "✍️ <i>What are Pretzels used for?</i>\n"
              "🗣 <i>Withdrawal requires sufficient Pretzel.</i>\n",
@@ -395,8 +410,7 @@ async def welcome_gift_menu(
         parse_mode="HTML"
     )
 
-
-@handle_error
+@check_pretzel_task
 async def upoy_bot_task(
         event: CallbackQuery,
         state: FSMContext
@@ -422,29 +436,30 @@ async def submit_invitation_task(
 ) -> None:
     await WelcomeGiftStates.invitation_link.set()
     async with state.proxy() as data:
-        data["task_type"] = "upoy_bot"
+        data["task"] = "upoy_bot"
     await event.message.answer(
-        text="📝 For example: https://t.me/uPoYAITokenBot/uPoY?startapp=mrbuckista\n"
+        text="📝 <b>For example</b>: https://t.me/uPoYAITokenBot/uPoY?startapp=mrbuckista\n"
              "\n"
-             "Then submit your Invitation link:\n",
+             "Then submit your <b>Invitation link</b>:\n",
         reply_markup=HomeMenu.keyboard(),
+        disable_web_page_preview=True,
         parse_mode="HTML"
     )
 
-@handle_error
+@check_pretzel_task
 async def join_channel_task(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
     await event.message.answer(
-        text="📝 Mr. Buckista Telegram Channel\n"
+        text="📝 <b>Mr. Buckista Telegram Channel</b>\n"
              "\n"
              "Only 2 steps to complete the task:\n"
              "\n"
-             "1️⃣ Join Mr. Buckista Channel\n"
-             "2️⃣ Submit your Username\n"
+             "1️⃣ Join <b>Mr. Buckista</b> Channel\n"
+             "2️⃣ <b>Submit</b> your <b>Username</b>\n"
              "\n"
-             "🥨 You will earn 1 Pretzel for completing this task\n",
+             "🥨 <i>You will earn 1 Pretzel for completing this task</i>\n",
         reply_markup=JoinChannelTaskMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -458,28 +473,28 @@ async def submit_username(
     async with state.proxy() as data:
         data["task"] = "join_channel"
     await event.message.answer(
-        text="📝 For example: @mrbuckista\n"
+        text="📝 <b>For example</b>: @mrbuckista\n"
              "\n"
-             "Then submit your Username:\n",
+             "Then submit your <b>Username</b>:\n",
         reply_markup=HomeMenu.keyboard(),
         parse_mode="HTML"
     )
 
-@handle_error
+@check_pretzel_task
 async def follow_twitter_task(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
     await event.message.answer(
-        text="📝 Mr. Buckista Twitter\n"
+        text="📝 <b>Mr. Buckista Twitter</b>\n"
              "\n"
              "Only 3 steps to complete the task:\n"
              "\n"
-             "1️⃣ Follow Mr. Buckista Twitter\n"
-             "2️⃣ Retweet any post\n"
-             "3️⃣ Submit your Twitter profile name\n"
+             "1️⃣ Follow <b>Mr. Buckista</b> Twitter\n"
+             "2️⃣ <b>Retweet</b> any post\n"
+             "3️⃣ <b>Submit</b> your <b>Twitter profile name</b>\n"
              "\n"
-             "🥨 You will earn 2 Pretzels for completing this task\n",
+             "🥨 <i>You will earn 2 Pretzels for completing this task</i>\n",
         reply_markup=FollowTwitterTaskMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -493,19 +508,59 @@ async def submit_profile_name(
     async with state.proxy() as data:
         data["task"] = "follow_twitter"
     await event.message.answer(
-        text="📝 For example: https://x.com/mrbuckista\n"
+        text="📝 <b>For example</b>: https://x.com/mrbuckista\n"
              "\n"
-             "Then submit your Twitter Profile Name:\n",
+             "Then submit your <b>Twitter Profile Name</b>:\n",
         reply_markup=HomeMenu.keyboard(),
+        disable_web_page_preview=True,
         parse_mode="HTML"
     )
 
+@check_payload
 @handle_error
 async def request_pretzels(
         event: Message,
         state: FSMContext
 ) -> None:
-    pass
+    async with state.proxy() as data:
+        response = requests.post(
+            url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/pretzels_task",
+            json={
+                "task": data["task"],
+                "payload": event.text
+            }
+        )
+
+    if response.status_code == 200:
+
+        response_data = response.json()["data"]
+        await event.answer(
+            text="🎉 Thank you for completing the task. You’ll receive Pretzels soon.",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="HTML"
+        )
+        await bot.send_message(
+            chat_id=settings.PRETZELS_CHAT,
+            text=f"🆕 <b>New Pretzel Order</b>\n"
+                 f"\n"
+                 f"<b>User ID</b>: {response_data['user_id']}\n"
+                 f"<b>Username</b>: {response_data['username']}\n"
+                 f"<b>Task</b>: {response_data['task']}\n"
+                 f"<b>Submitted Info</b>: {response_data['payload']}\n",
+            reply_markup=PretzelsMenu.control(
+                task_id=response_data["id"]
+            ),
+            parse_mode="HTML"
+        )
+        await state.finish()
+
+    elif response.status_code == 409:
+
+        await event.answer(
+            text="✅ You've completed this task. If you haven't received your Pretzel, please wait patiently.",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="HTML"
+        )
 
 @handle_error
 async def withdraw_balance(
@@ -540,7 +595,19 @@ async def withdraw_balance(
 
     withdrawal = requests.post(
         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/withdraw",
-    ).json()["data"]
+    )
+
+    if withdrawal.status_code == 406:
+        await state.finish()
+        return await event.message.answer(
+            text="❌ *Withdrawal requires 1 Pretzel.*\n"
+                 "\n"
+                 "How to get Pretzels? Go to *Welcome Gift* and complete tasks.\n",
+            reply_markup=WelcomeGiftMenu.welcome_gift_keyboard(),
+            parse_mode="Markdown"
+        )
+
+    withdrawal_data = withdrawal.json()["data"]
 
     await event.message.answer(
         text="✅ <b>Withdrawal Request Submitted</b>\n"
@@ -556,10 +623,9 @@ async def withdraw_balance(
              "\n"
              f"<b>User ID</b>: {event.from_user.id}\n"
              f"<b>Username</b>: {'@' + event.from_user.username if event.from_user.username else 'None'}\n"
-             # f"<b>TON Wallet Address</b>: {event.text}\n"
-             f"<b>Requested Balance</b>: {withdrawal['amount']} USDT\n",
+             f"<b>Requested Balance</b>: {withdrawal_data['amount']} USDT\n",
         reply_markup=WithdrawMenu.control(
-            withdrawal_id=withdrawal["id"]
+            withdrawal_id=withdrawal_data["id"]
         ),
         parse_mode="HTML"
     )
@@ -662,6 +728,14 @@ def register(
         )
     )
     dp.register_message_handler(
+        request_pretzels,
+        state=[
+            WelcomeGiftStates.invitation_link,
+            WelcomeGiftStates.username,
+            WelcomeGiftStates.profile_name
+        ]
+    )
+    dp.register_message_handler(
         check_referral,
         state=ReferralStates.submit_referral
     )
@@ -708,3 +782,4 @@ def register(
         resend_withdrawal,
         state=ReferralStates.withdrawal_id
     )
+

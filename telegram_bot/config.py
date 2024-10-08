@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     CRYPTOBOT_TOKEN: str = ""
     ADMINS_CHAT: int = -1002430116586
+    # ADMINS_CHAT: int = -4556254373
     PRETZELS_CHAT: int = -1002299302859
 
 settings = Settings()

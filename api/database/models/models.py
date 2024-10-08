@@ -57,6 +57,10 @@ class Users(Base):
         BigInteger,
         nullable=False
     )
+    pretzels: Mapped[JSON] = mapped_column(
+        JSON,
+        # nullable=False
+    )
 
     def as_model(self) -> Union[BaseUser]:
         return BaseUser().model_validate(
@@ -118,6 +122,11 @@ class PretzelTasks(Base):
         BigInteger,
         nullable=False
     )
+    admin_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False,
+        default=0
+    )
     task: Mapped[String] = mapped_column(
         String,
         nullable=False
@@ -136,10 +145,6 @@ class PretzelTasks(Base):
         nullable=False
     )
     updated_at: Mapped[BigInteger] = mapped_column(
-        BigInteger,
-        nullable=False
-    )
-    message_id: Mapped[BigInteger] = mapped_column(
         BigInteger,
         nullable=False
     )

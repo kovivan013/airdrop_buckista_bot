@@ -35,7 +35,8 @@ from database.models.models import (
 from schemas.schemas import (
     BaseUser,
     BaseWithdrawal,
-    BasePretzelTask
+    BasePretzelTask,
+    PretzelRewards
 )
 from services import exceptions
 from schemas.base import DataStructure
@@ -142,7 +143,8 @@ async def get_balance(
     user_model = user.as_model()
 
     result.data = {
-        "balance": user_model.balance
+        "balance": user_model.balance,
+        "pretzels": user_model.pretzels
     }
     result._status = HTTPStatus.HTTP_200_OK
 
@@ -384,6 +386,84 @@ async def complete_task(
     return result
 
 
+@user_router.get("/{telegram_id}/pretzels_task")
+async def check_pretzel_task(
+        telegram_id: int,
+        task: str,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    user = await session.get(
+        Users,
+        telegram_id
+    )
+
+    if not user:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="User not found"
+        )._report()
+
+    tasks: list = [i for i in PretzelRewards().model_dump()]
+
+    if task not in tasks:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Task is not found."
+        )._report()
+
+    allowed: bool = False
+    onetime_task: bool = False
+
+    if task in ["join_channel", "follow_twitter"]:
+        print(1)
+        query = await session.execute(
+            select(
+                PretzelTasks
+            ).filter(
+                PretzelTasks.user_id == telegram_id
+            ).filter(
+                PretzelTasks.status.in_(
+                    ["pending", "approved"]
+                )
+            ).filter(
+                PretzelTasks.task == task
+            )
+        )
+        onetime_task = query.scalars().all()
+
+    query = await session.execute(
+        select(
+            PretzelTasks
+        ).filter(
+            PretzelTasks.user_id == telegram_id
+        ).filter(
+            PretzelTasks.status == "pending"
+        ).filter(
+            PretzelTasks.task == task
+        )
+    )
+    user_task = query.scalars().all()
+
+    print(onetime_task, user_task)
+
+    if not user_task:
+        allowed = True
+
+    if onetime_task:
+        allowed = False
+
+    result.data = {
+        "allowed": allowed
+    }
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
 @user_router.post("/{telegram_id}/pretzels_task")
 async def pretzels_task(
         telegram_id: int,
@@ -406,22 +486,78 @@ async def pretzels_task(
             message="User not found"
         )._report()
 
-    tasks: list = [i["title"] for i in BasePretzelTask().model_dump()]
+    tasks: list = [i for i in PretzelRewards().model_dump()]
 
     if parameters.task not in tasks:
         return await Reporter(
             exception=exceptions.ItemNotFound,
             message="Task is not found."
+        )._report()
+
+    onetime_task: bool = False
+
+    if parameters.task in ["join_channel", "follow_twitter"]:
+        query = await session.execute(
+            select(
+                PretzelTasks
+            ).filter(
+                PretzelTasks.user_id == telegram_id
+            ).filter(
+                PretzelTasks.status.in_(
+                    ["pending", "approved"]
+                )
+            ).filter(
+                PretzelTasks.task == parameters.task
+            )
         )
+        onetime_task = query.scalars().all()
+
+    query = await session.execute(
+        select(
+            PretzelTasks
+        ).filter(
+            PretzelTasks.user_id == telegram_id
+        ).filter(
+            PretzelTasks.status == "pending"
+        ).filter(
+            PretzelTasks.task == parameters.task
+        )
+    )
+    user_task = query.scalars().all()
+
+    if user_task or onetime_task:
+        return await Reporter(
+            exception=exceptions.ItemExists,
+            message="The task has been already completed."
+        )._report()
+
+    task = BasePretzelTask(
+        user_id=telegram_id,
+        **parameters.model_dump()
+    )
+    task.id = utils._uuid()
+    task.created_at = utils.timestamp()
+    task.updated_at = task.created_at
+
+    session.add(
+        PretzelTasks(
+            **task.model_dump()
+        )
+    )
+
+    await session.commit()
+    await session.close()
 
     result.data = {
+        "id": task.id,
         "user_id": user.telegram_id,
         "username": f"@{user.username}" if user.username else "None",
-        "task": BasePretzelTask().model_dump()[
+        "task": PretzelRewards().model_dump()[
             parameters.task
         ]["title"],
         "payload": parameters.payload
     }
+    result._status = HTTPStatus.HTTP_200_OK
 
     return result
 
@@ -491,16 +627,37 @@ async def withdraw_balance(
         )._report()
 
     if user.balance < 1:
-        return Reporter(
+        return await Reporter(
             exception=exceptions.NotAcceptable,
             message="The balance must be > 1 to withdraw."
-        )
+        )._report()
+
+    if user.pretzels["balance"] < 1:
+        return await Reporter(
+            exception=exceptions.NotAcceptable,
+            message="To withdraw funds you need at least 1 pretzel."
+        )._report()
 
     data_scheme = BaseWithdrawal(
         id=utils._uuid(),
         user_id=telegram_id,
         amount=float(user.balance),
         created_at=utils.timestamp()
+    )
+
+    user.pretzels["balance"] -= 1
+    user.pretzels["redeemed"] += 1
+
+    await session.execute(
+        update(
+            Users
+        ).filter(
+            Users.telegram_id == user.telegram_id
+        ).values(
+            {
+                "pretzels": user.pretzels
+            }
+        )
     )
 
     session.add(

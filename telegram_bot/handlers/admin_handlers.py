@@ -19,7 +19,8 @@ from keyboards.keyboards import (
     HomeMenu,
     AdminMenu,
     WithdrawMenu,
-    CashierMenu
+    CashierMenu,
+    PretzelsMenu
 )
 
 
@@ -96,7 +97,10 @@ async def overview(
              f"👥 Today: {response['registered_today']}\n"
              "\n"
              f"✅ Total Completed Tasks: {response['total_completed_tasks']}\n"
-             f"✅ Total Referrals: {response['total_refferals']}\n",
+             f"✅ Total Referrals: {response['total_refferals']}\n"
+             f"\n"
+             f"🥨 Total Pretzels: {response['total_pretzels']}\n"
+             f"🥨 Redeemed: {response['redeemed_pretzels']}",
         reply_markup=HomeMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -121,13 +125,16 @@ async def user_data(
 ) -> None:
     response = requests.get(
         url=f"{settings.BASE_API_URL}/user/{event.text}"
-    ).json()
+    )
 
-    if response["status"] == 200:
+    if response.status_code == 200:
+
+        response_data = response.json()["data"]
+
         current_withdrawal = requests.post(
             url=f"{settings.BASE_API_URL}/user/current_withdrawal",
             json={
-                "withdrawal_id": response['data']['current_withdrawal']
+                "withdrawal_id": response_data['current_withdrawal']
             }
         ).json()
         total_withdrawals = requests.get(
@@ -139,13 +146,14 @@ async def user_data(
         return await event.answer(
             text="📊 <b>User Data</b>\n"
                  "\n"
-                 f"<b>UserID</b>: {response['data']['telegram_id']}\n"
-                 f"<b>Username</b>: {'@' + response['data']['username'] if response['data']['username'] else 'None'}\n"
+                 f"<b>UserID</b>: {response_data['telegram_id']}\n"
+                 f"<b>Username</b>: {'@' + response_data['username'] if response_data['username'] else 'None'}\n"
                  f"<b>Completed Tasks</b>: {completed_tasks['total_completed']} / {completed_tasks['completed_today']}\n"
-                 f"<b>Friends Referred</b>: {len(response['data']['referred_friends'])}\n"
-                 f"<b>Current Balance</b>: {response['data']['balance']} USDT\n"
+                 f"<b>Friends Referred</b>: {len(response_data['referred_friends'])}\n"
+                 f"<b>Current Balance</b>: {response_data['balance']} USDT\n"
                  f"<b>Withdrawal Request</b>: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
-                 f"<b>Total Withdrawals</b>: {total_withdrawals['total_withdrawals']} USDT",
+                 f"<b>Total Withdrawals</b>: {total_withdrawals['total_withdrawals']} USDT\n"
+                 f"<b>Pretzel</b>: {response_data['pretzels']['balance']} / {response_data['pretzels']['redeemed']}",
             reply_markup=AdminMenu.admin_menu(),
             parse_mode="HTML"
         )
@@ -463,6 +471,77 @@ async def decline_withdraw(
         )
 
 
+
+@handle_error
+async def accept_pretzel_task(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    task_id = event.data[:36]
+
+    response = requests.post(
+        url=f"{settings.BASE_API_URL}/admin/approve_pretzel_task?admin_id={event.from_user.id}&task_id={task_id}"
+    ).json()
+
+    if response["status"] == 200:
+        response_data = response["data"]
+
+        await event.message.edit_text(
+            text=f"✅ <b>Pretzel Order Approved</b>\n"
+                 f"\n"
+                 f"<b>User ID</b>: {response_data['user_id']}\n"
+                 f"<b>Username</b>: {response_data['username']}\n"
+                 f"<b>Task</b>: {response_data['task']}\n"
+                 f"<b>Submitted Info</b>: {response_data['payload']}\n",
+            reply_markup={},
+            parse_mode="HTML"
+        )
+
+        await bot.send_message(
+            chat_id=response_data["user_id"],
+            text=f"🎉 <b>Congratulations!</b> \n"
+                 f"\n"
+                 f"You received a reward of <b>{response_data['reward']} Pretzels</b>\n",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="HTML"
+        )
+
+
+@handle_error
+async def decline_pretzel_task(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    task_id = event.data[:36]
+
+    response = requests.post(
+        url=f"{settings.BASE_API_URL}/admin/decline_pretzel_task?admin_id={event.from_user.id}&task_id={task_id}"
+    ).json()
+
+    if response["status"] == 200:
+        response_data = response["data"]
+
+        await event.message.edit_text(
+            text=f"❌ <b>Pretzel Order Declined</b>\n"
+                 f"\n"
+                 f"<b>User ID</b>: {response_data['user_id']}\n"
+                 f"<b>Username</b>: {response_data['username']}\n"
+                 f"<b>Task</b>: {response_data['task']}\n"
+                 f"<b>Submitted Info</b>: {response_data['payload']}\n",
+            reply_markup={},
+            parse_mode="HTML"
+        )
+
+        await bot.send_message(
+            chat_id=response_data["user_id"],
+            text="❌ <b>Pretzel Order Declined</b>\n"
+                 "\n"
+                 "Your submitted information does not meet the criteria. Please try again.\n",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="HTML"
+        )
+
+
 def register(
         dp: Dispatcher
 ) -> None:
@@ -517,6 +596,18 @@ def register(
         decline_withdraw,
         Text(
             endswith=WithdrawMenu.decline_withdraw_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        accept_pretzel_task,
+        Text(
+            endswith=PretzelsMenu.accept_pretzels_callback
+        )
+    )
+    dp.register_callback_query_handler(
+        decline_pretzel_task,
+        Text(
+            endswith=PretzelsMenu.decline_pretzels_callback
         )
     )
     dp.register_callback_query_handler(

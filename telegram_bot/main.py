@@ -79,15 +79,10 @@ async def check_transfers():
                         except:
                             pass
 
-async def check_pretzel_tasks():
-    pass
 
 async def on_startup(_) -> None:
     asyncio.create_task(
         check_transfers()
-    )
-    asyncio.create_task(
-
     )
     print("Bot started")
 

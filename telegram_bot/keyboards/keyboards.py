@@ -56,10 +56,12 @@ class DescriptionMenu:
 
     airdrop: str = "BioMatrix Airdrop"
     welcome_gift: str = "Welcome Gift"
+    # welcome_gift: str = "Join Channel"
     balance: str = "My Balance"
 
     airdrop_callback: str = "airdrop_callback"
     welcome_gift_callback: str = "welcome_gift_callback"
+    # welcome_gift_callback: str = "https://t.me/mrbuckista"
     balance_callback: str = "balance_callback"
 
     @classmethod
@@ -83,18 +85,35 @@ class DescriptionMenu:
             )
         )
 
+        # keyboard.add(
+        #     InlineKeyboardButton(
+        #         text=cls.airdrop,
+        #         callback_data=cls.airdrop_callback
+        #     )
+        # )
+        # keyboard.add(
+        #     InlineKeyboardButton(
+        #         text=cls.welcome_gift,
+        #         url=cls.welcome_gift_callback
+        #     ),
+        #     InlineKeyboardButton(
+        #         text=cls.balance,
+        #         callback_data=cls.balance_callback
+        #     )
+        # )
+
         return keyboard
 
 
-class WelcomeGiftMenu:
+class WelcomeGiftMenu(DescriptionMenu):
 
     upoy_bot: str = "uPoY Bot"
     join_channel: str = "Join Channel"
     follow_twitter: str = "Follow Twitter"
 
-    upoy_bot_callback: str = "upoy_bot_callback"
-    join_channel_callback: str = "join_channel_callback"
-    follow_twitter_callback: str = "follow_twitter_callback"
+    upoy_bot_callback: str = "upoy_bot"
+    join_channel_callback: str = "join_channel"
+    follow_twitter_callback: str = "follow_twitter"
 
     @classmethod
     def keyboard(cls) -> Union[InlineKeyboardMarkup]:
@@ -103,10 +122,10 @@ class WelcomeGiftMenu:
         )
 
         keyboard.add(
-            InlineKeyboardButton(
-                text=cls.upoy_bot,
-                callback_data=cls.upoy_bot_callback
-            ),
+            # InlineKeyboardButton(
+            #     text=cls.upoy_bot,
+            #     callback_data=cls.upoy_bot_callback
+            # ),
             InlineKeyboardButton(
                 text=cls.join_channel,
                 callback_data=cls.join_channel_callback
@@ -118,6 +137,20 @@ class WelcomeGiftMenu:
         )
 
         return keyboard
+
+    @classmethod
+    def welcome_gift_keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.welcome_gift,
+                callback_data=cls.welcome_gift_callback
+            )
+        )
+
+        return keyboard
+
 
 class TasksListMenu(Base):
 
@@ -394,7 +427,34 @@ class WithdrawMenu:
         return keyboard
 
 
+class PretzelsMenu:
 
+    accept_pretzels: str = "Accept"
+    decline_pretzels: str = "Decline"
+
+    withdraw_callback: str = "withdraw_callback"
+    accept_pretzels_callback: str = "accept_pretzels"
+    decline_pretzels_callback: str = "decline_pretzels"
+
+    @classmethod
+    def control(
+            cls,
+            task_id: str
+    ) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.accept_pretzels,
+                callback_data=f"{task_id}_{cls.accept_pretzels_callback}"
+            ),
+            InlineKeyboardButton(
+                text=cls.decline_pretzels,
+                callback_data=f"{task_id}_{cls.decline_pretzels_callback}"
+            )
+        )
+
+        return keyboard
 
 class AdminMenu(Base):
 

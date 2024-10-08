@@ -29,12 +29,15 @@ from common.dtos import (
 from database.models.models import (
     Users,
     Withdrawals,
-    Transactions
+    Transactions,
+    PretzelTasks
 )
 from schemas.schemas import (
     BaseUser,
     BaseWithdrawal,
-    BaseTransaction
+    BaseTransaction,
+    BasePretzelTask,
+    PretzelRewards
 )
 from services import exceptions
 from schemas.base import DataStructure
@@ -69,6 +72,8 @@ async def overview(
     registered_today: int = 0
     total_completed_tasks: int = 0
     total_refferals: int = 0
+    total_pretzels: int = 0
+    redeemed_pretzels: int = 0
     today = utils._today()
     end_of_today = today + 86400
 
@@ -77,6 +82,11 @@ async def overview(
         total_completed_tasks += len(
             user.completed_tasks
         )
+
+        total_pretzels += user.pretzels["balance"] + user.pretzels["redeemed"]
+        redeemed_pretzels += user.pretzels[
+            "redeemed"
+        ]
 
         total_refferals += len(
             user.referred_friends
@@ -95,7 +105,9 @@ async def overview(
         "registered_users": registered_users,
         "registered_today": registered_today,
         "total_completed_tasks": total_completed_tasks,
-        "total_refferals": total_refferals
+        "total_refferals": total_refferals,
+        "total_pretzels": total_pretzels,
+        "redeemed_pretzels": redeemed_pretzels
     }
     result._status = HTTPStatus.HTTP_200_OK
 
@@ -484,14 +496,153 @@ async def transfer_funds(
     return result
 
 
-@admin_router.post("/transfer_pretzels")
-async def transfer_pretzels(
+@admin_router.post("/approve_pretzel_task")
+async def approve_pretzel_tasks(
+        admin_id: int,
+        task_id: str,
         request: Request,
         session: AsyncSession = Depends(
             core.create_sa_session
         )
 ) -> Union[DataStructure]:
     result = DataStructure()
+
+    admin = await session.get(
+        Users,
+        admin_id
+    )
+
+    if not admin:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="User not found"
+        )._report()
+
+    task = await session.get(
+        PretzelTasks,
+        task_id
+    )
+
+    if not task:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Unknown task."
+        )._report()
+
+    if task.status in ["approved", "declined"]:
+        return await Reporter(
+            exception=exceptions.NotAcceptable,
+            message="The task can't be approved."
+        )._report()
+
+    user = await session.get(
+        Users,
+        task.user_id
+    )
+
+    task.status = "approved"
+    task.admin_id = admin_id
+    task.updated_at = utils.timestamp()
+
+    task_data = PretzelRewards().model_dump()[
+        task.task
+    ]
+
+    reward = task_data["reward"]
+
+    user.pretzels["balance"] += reward
+
+    await session.execute(
+        update(
+            Users
+        ).filter(
+            Users.telegram_id == user.telegram_id
+        ).values(
+            {
+                "pretzels": user.pretzels
+            }
+        )
+    )
+
+    await session.commit()
+    await session.close()
+
+    result.data = {
+        "user_id": user.telegram_id,
+        "username": f"@{user.username}" if user.username else "None",
+        "task": task_data["title"],
+        "reward": reward,
+        "payload": task.payload,
+        "status": task.status
+    }
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+
+@admin_router.post("/decline_pretzel_task")
+async def decline_pretzel_task(
+        admin_id: int,
+        task_id: str,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    admin = await session.get(
+        Users,
+        admin_id
+    )
+
+    if not admin:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="User not found"
+        )._report()
+
+    task = await session.get(
+        PretzelTasks,
+        task_id
+    )
+
+    if not task:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Unknown task."
+        )._report()
+
+    if task.status in ["approved", "declined"]:
+        return await Reporter(
+            exception=exceptions.NotAcceptable,
+            message="The task can't be declined."
+        )._report()
+
+    user = await session.get(
+        Users,
+        task.user_id
+    )
+
+    task_data = PretzelRewards().model_dump()[
+        task.task
+    ]
+
+    task.status = "declined"
+    task.admin_id = admin_id
+    task.updated_at = utils.timestamp()
+
+    await session.commit()
+    await session.close()
+
+    result.data = {
+        "user_id": user.telegram_id,
+        "username": f"@{user.username}" if user.username else "None",
+        "task": task_data["title"],
+        "payload": task.payload,
+        "status": task.status
+    }
+    result._status = HTTPStatus.HTTP_200_OK
 
     return result
 

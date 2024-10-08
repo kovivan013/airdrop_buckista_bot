@@ -2,6 +2,11 @@ from pydantic import BaseModel
 from typing import Dict, List
 
 
+class Pretzels(BaseModel):
+
+    balance: int = 0
+    redeemed: int = 0
+
 class BaseUser(BaseModel):
 
     telegram_id: int = 0
@@ -12,6 +17,7 @@ class BaseUser(BaseModel):
     referred_friends: List[int] = []
     created_at: int = 0
     referred_by: int = 0
+    pretzels: Pretzels = Pretzels()
 
 
 class BaseWithdrawal(BaseModel):
@@ -61,12 +67,12 @@ class BasePretzelTask(BaseModel):
 
     id: str = ""
     user_id: int = 0
+    admin_id: int = 0
     task: str = ""
     payload: str = ""
     status: str = "pending"
     created_at: int = 0
     updated_at: int = 0
-    message_id: int = 0
 
 
 class PretzelRewards(BaseModel):
