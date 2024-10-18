@@ -2,6 +2,7 @@ import requests
 from aiogram import Dispatcher
 import aiohttp
 from config import bot, settings
+from utils import utils
 from aiogram.types import (
     Message,
     CallbackQuery,
@@ -11,7 +12,8 @@ from aiogram.dispatcher.storage import FSMContext
 from aiogram.dispatcher.filters import Text
 from states.states import (
     ReferralStates,
-    WelcomeGiftStates
+    WelcomeGiftStates,
+    PretzelGift
 )
 from decorators.decorators import (
     private_message,
@@ -171,10 +173,8 @@ async def user_balance(
              "<i>Withdrawal Notice:</i>\n"
              "\n"
              "- <i>Crypto Bot Wallet activation required</i>\n"
-             "- <i>Minimum amount is 1 USDT</i>\n"
-             "- <i>Sufficient Pretzel needed</i>\n"
-
-        ,
+             "- <i>Minimum amount is 1.2 USDT</i>\n"
+             "- <i>Sufficient Pretzel needed</i>\n",
         reply_markup=WithdrawMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -451,32 +451,19 @@ async def join_channel_task(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
+    async with state.proxy() as data:
+        data["task"] = "join_channel"
     await event.message.answer(
         text="📝 <b>Mr. Buckista Telegram Channel</b>\n"
              "\n"
              "Only 2 steps to complete the task:\n"
              "\n"
-             "1️⃣ Join <b>Mr. Buckista</b> Channel\n"
-             "2️⃣ <b>Submit</b> your <b>Username</b>\n"
+             "1️⃣ Join <a href='https://t.me/mrbuckista'>Mr. Buckista Channel</a>\n"
+             "2️⃣ <b>Click</b> the <b>button</b> below\n"
              "\n"
              "🥨 <i>You will earn 1 Pretzel for completing this task</i>\n",
+        disable_web_page_preview=True,
         reply_markup=JoinChannelTaskMenu.keyboard(),
-        parse_mode="HTML"
-    )
-
-@handle_error
-async def submit_username(
-        event: CallbackQuery,
-        state: FSMContext
-) -> None:
-    await WelcomeGiftStates.username.set()
-    async with state.proxy() as data:
-        data["task"] = "join_channel"
-    await event.message.answer(
-        text="📝 <b>For example</b>: @mrbuckista\n"
-             "\n"
-             "Then submit your <b>Username</b>:\n",
-        reply_markup=HomeMenu.keyboard(),
         parse_mode="HTML"
     )
 
@@ -522,36 +509,72 @@ async def request_pretzels(
         event: Message,
         state: FSMContext
 ) -> None:
+    automated_tasks: list = ["join_channel"]
+
     async with state.proxy() as data:
+        task =  data["task"]
+
+        if task in automated_tasks:
+            payload = task
+        else:
+            payload = event.text
+
         response = requests.post(
             url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/pretzels_task",
             json={
-                "task": data["task"],
-                "payload": event.text
+                "task": task,
+                "payload": payload
             }
         )
 
     if response.status_code == 200:
 
         response_data = response.json()["data"]
-        await event.answer(
-            text="🎉 Thank you for completing the task. You’ll receive Pretzels soon.",
-            reply_markup=HomeMenu.keyboard(),
-            parse_mode="HTML"
-        )
-        await bot.send_message(
-            chat_id=settings.PRETZELS_CHAT,
-            text=f"🆕 <b>New Pretzel Order</b>\n"
-                 f"\n"
-                 f"<b>User ID</b>: {response_data['user_id']}\n"
-                 f"<b>Username</b>: {response_data['username']}\n"
-                 f"<b>Task</b>: {response_data['task']}\n"
-                 f"<b>Submitted Info</b>: {response_data['payload']}\n",
-            reply_markup=PretzelsMenu.control(
-                task_id=response_data["id"]
-            ),
-            parse_mode="HTML"
-        )
+
+        if task not in automated_tasks:
+
+            await event.answer(
+                text="🎉 Thank you for completing the task. You’ll receive Pretzels soon.",
+                reply_markup=HomeMenu.keyboard(),
+                parse_mode="HTML"
+            )
+            await bot.send_message(
+                chat_id=settings.PRETZELS_CHAT,
+                text=f"🆕 <b>New Pretzel Order</b>\n"
+                     f"\n"
+                     f"<b>User ID</b>: {response_data['user_id']}\n"
+                     f"<b>Username</b>: {response_data['username']}\n"
+                     f"<b>Task</b>: {response_data['task']}\n"
+                     f"<b>Submitted Info</b>: {response_data['payload']}\n",
+                reply_markup=PretzelsMenu.control(
+                    task_id=response_data["id"]
+                ),
+                parse_mode="HTML"
+            )
+
+        if task == "join_channel":
+
+            admin_id: int = 995570913
+
+            try:
+                is_join = await bot.get_chat_member(
+                    settings.OFFICIAL_CHANNEL,
+                    event.from_user.id
+                )
+
+                if is_join.status not in ["member", "administrator", "creator"]:
+                    raise
+
+                await utils.accept_join_task(
+                    task_id=response_data["id"],
+                    admin_id=admin_id
+                )
+            except:
+                await utils.decline_join_task(
+                    task_id=response_data["id"],
+                    admin_id=admin_id
+                )
+
         await state.finish()
 
     elif response.status_code == 409:
@@ -585,10 +608,10 @@ async def withdraw_balance(
             reply_markup=HomeMenu.keyboard(),
             parse_mode="Markdown"
         )
-    elif float(response["balance"]) < 1:
+    elif float(response["balance"]) < 1.2:
         await state.finish()
         return await event.message.answer(
-            text="❌ *Minimum withdrawal amount 1 USDT*",
+            text="❌ *Minimum withdrawal amount 1.2 USDT*",
             reply_markup=HomeMenu.keyboard(),
             parse_mode="Markdown"
         )
@@ -652,6 +675,99 @@ async def invite_friend(
         parse_mode="HTML"
     )
 
+@handle_error
+async def gift_pretzels(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    user_pretzels = requests.get(
+        url=f"{settings.BASE_API_URL}/user/{event.from_user.id}"
+    ).json()["data"]["pretzels"]
+
+    if user_pretzels["balance"] < 1:
+
+        return await event.message.answer(
+            text="🤦 Oh man! You’ve got no Pretzels!\n"
+                 "\n"
+                 "How to get Pretzels? Go to <b>Welcome Gift</b> and complete tasks.\n",
+            reply_markup=WelcomeGiftMenu.welcome_gift_keyboard(),
+            parse_mode="HTML"
+        )
+
+    await PretzelGift.gift_pretzel_id.set()
+    await event.message.answer(
+        text="🎁 <b>Gift Pretzel</b>\n"
+             "\n"
+             "Enter the <b>user ID</b> to whom you want to gift the Pretzel:\n",
+        reply_markup=HomeMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def pretzel_user_id(
+        event: Message,
+        state: FSMContext
+) -> None:
+    response = requests.get(
+        url=f"{settings.BASE_API_URL}/user/{event.text}"
+    )
+
+    if response.status_code != 200 or str(event.from_user.id) == event.text:
+
+        return await event.answer(
+            text="🚫 This user does not exist. Please re-enter:\n",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="HTML"
+        )
+
+    await PretzelGift.pretzel_amount.set()
+    async with state.proxy() as data:
+        data["user_id"] = int(
+            event.text
+        )
+    await event.answer(
+        text=f"🎁 <b>Gift Pretzel</b>\n"
+             f"\n"
+             f"Enter <b>how many</b> Pretzels you want to gift to user <b>{event.text}</b>:\n",
+        parse_mode="HTML"
+    )
+
+@handle_error
+async def transfer_pretzels(
+        event: Message,
+        state: FSMContext
+) -> None:
+    async with state.proxy() as data:
+        response = requests.post(
+            url=f"{settings.BASE_API_URL}/user/{event.from_user.id}/gift_pretzel?target_user_id={data['user_id']}&amount={event.text}"
+        )
+
+    if response.status_code == 200:
+        response_data = response.json()["data"]
+
+        await event.answer(
+            text=f"🎉 User <b>{response_data['target_user_id']}</b> has received <b>{response_data['amount']} Pretzel{'s' if response_data['amount'] > 1 else ''}</b> that you gifted.",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="HTML"
+        )
+        await bot.send_message(
+            chat_id=response_data['target_user_id'],
+            text=f"🥨 You have received <b>{response_data['amount']} Pretzel{'s' if response_data['amount'] > 1 else ''}</b> from user <b>{response_data['telegram_id']}</b>.",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="HTML"
+        )
+
+    elif response.status_code in range(400, 500):
+        response_data = response.json()["data"]
+
+        return await event.answer(
+            text="⚠️ You don't have enough Pretzels. Please re-enter:",
+            reply_markup=HomeMenu.keyboard(),
+            parse_mode="HTML"
+        )
+
+    await state.finish()
+
 
 def register(
         dp: Dispatcher
@@ -683,14 +799,15 @@ def register(
         welcome_gift_menu,
         Text(
             equals=DescriptionMenu.welcome_gift_callback
-        )
+        ),
+        state=["*"]
     )
-    dp.register_callback_query_handler(
-        upoy_bot_task,
-        Text(
-            equals=WelcomeGiftMenu.upoy_bot_callback
-        )
-    )
+    # dp.register_callback_query_handler(
+    #     upoy_bot_task,
+    #     Text(
+    #         equals=WelcomeGiftMenu.upoy_bot_callback
+    #     )
+    # )
     dp.register_callback_query_handler(
         join_channel_task,
         Text(
@@ -703,16 +820,16 @@ def register(
             equals=WelcomeGiftMenu.follow_twitter_callback
         )
     )
+    # dp.register_callback_query_handler(
+    #     submit_invitation_task,
+    #     Text(
+    #         equals=UPOYBotTaskMenu.submit_invite_link_callback
+    #     )
+    # )
     dp.register_callback_query_handler(
-        submit_invitation_task,
+        request_pretzels,
         Text(
-            equals=UPOYBotTaskMenu.submit_invite_link_callback
-        )
-    )
-    dp.register_callback_query_handler(
-        submit_username,
-        Text(
-            equals=JoinChannelTaskMenu.submit_username_callback
+            equals=JoinChannelTaskMenu.join_channel_callback
         )
     )
     dp.register_callback_query_handler(
@@ -744,6 +861,20 @@ def register(
         Text(
             WithdrawMenu.withdraw_callback
         )
+    )
+    dp.register_callback_query_handler(
+        gift_pretzels,
+        Text(
+            WithdrawMenu.gift_pretzel_callback
+        )
+    )
+    dp.register_message_handler(
+        pretzel_user_id,
+        state=PretzelGift.gift_pretzel_id
+    )
+    dp.register_message_handler(
+        transfer_pretzels,
+        state=PretzelGift.pretzel_amount
     )
     # dp.register_message_handler(
     #     withdraw_balance,

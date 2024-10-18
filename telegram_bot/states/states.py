@@ -9,6 +9,7 @@ class AdminStates(StatesGroup):
     user_data = State()
     lucky_user = State()
     lucky_amount = State()
+    weekly_referrers = State()
     top_referrers = State()
     cashier = State()
     main_wallet = State()
@@ -21,7 +22,12 @@ class ReferralStates(StatesGroup):
     withdrawal_id = State()
     submit_referral = State()
     checked_code = State()
-    withdraw_address = State()
+
+
+class PretzelGift(StatesGroup):
+
+    gift_pretzel_id = State()
+    pretzel_amount = State()
 
 
 class WelcomeGiftStates(StatesGroup):

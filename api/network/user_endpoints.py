@@ -30,13 +30,15 @@ from common.dtos import (
 from database.models.models import (
     Users,
     Withdrawals,
-    PretzelTasks
+    PretzelTasks,
+    Workers
 )
 from schemas.schemas import (
     BaseUser,
     BaseWithdrawal,
     BasePretzelTask,
-    PretzelRewards
+    PretzelRewards,
+    BaseWorker
 )
 from services import exceptions
 from schemas.base import DataStructure
@@ -420,7 +422,6 @@ async def check_pretzel_task(
     onetime_task: bool = False
 
     if task in ["join_channel", "follow_twitter"]:
-        print(1)
         query = await session.execute(
             select(
                 PretzelTasks
@@ -448,8 +449,6 @@ async def check_pretzel_task(
         )
     )
     user_task = query.scalars().all()
-
-    print(onetime_task, user_task)
 
     if not user_task:
         allowed = True
@@ -626,10 +625,10 @@ async def withdraw_balance(
             message="User not found"
         )._report()
 
-    if user.balance < 1:
+    if user.balance < 1.2:
         return await Reporter(
             exception=exceptions.NotAcceptable,
-            message="The balance must be > 1 to withdraw."
+            message="The balance must be > 1.2 to withdraw."
         )._report()
 
     if user.pretzels["balance"] < 1:
@@ -676,3 +675,129 @@ async def withdraw_balance(
     result._status = HTTPStatus.HTTP_200_OK
 
     return result
+
+
+@user_router.post("/{telegram_id}/gift_pretzel")
+async def gift_pretzel(
+        telegram_id: int,
+        target_user_id: int,
+        request: Request,
+        amount: int = Query(
+            gt=0,
+            default=0
+        ),
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    if telegram_id == target_user_id:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Can't transfer pretzels to own account"
+        )._report()
+
+    user = await session.get(
+        Users,
+        telegram_id
+    )
+
+    if not user:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="User not found"
+        )._report()
+
+    target_user = await session.get(
+        Users,
+        target_user_id
+    )
+
+    if not target_user:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Target user not found"
+        )._report()
+
+    if user.pretzels["balance"] < amount:
+        return await Reporter(
+            exception=exceptions.NotAcceptable,
+            message="You don't have enough Pretzels."
+        )._report()
+
+    target_user.pretzels["balance"] += amount
+    user.pretzels["balance"] -= amount
+    user.pretzels["gifted"] += amount
+
+    await session.execute(
+        update(
+            Users
+        ).filter(
+            Users.telegram_id == target_user_id
+        ).values(
+            {
+                "pretzels": target_user.pretzels
+            }
+        )
+    )
+    await session.execute(
+        update(
+            Users
+        ).filter(
+            Users.telegram_id == telegram_id
+        ).values(
+            {
+                "pretzels": user.pretzels
+            }
+        )
+    )
+
+    await session.commit()
+    await session.close()
+
+    result.data = {
+        "telegram_id": telegram_id,
+        "target_user_id": target_user_id,
+        "amount": amount
+    }
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+
+@user_router.post("/workers")
+async def update_workers(
+        parameters: BaseWorker,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    iteration = await session.get(
+        Workers,
+        parameters.index
+    )
+
+    if iteration:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Iteration exists"
+        )._report()
+
+    session.add(
+        Workers(
+            **parameters.model_dump()
+        )
+    )
+
+    await session.commit()
+    await session.close()
+
+    result.data = parameters.model_dump()
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+

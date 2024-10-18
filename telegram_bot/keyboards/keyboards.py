@@ -304,11 +304,9 @@ class UPOYBotTaskMenu(Base):
 
 class JoinChannelTaskMenu(Base):
 
-    go_to_channel: str = "Go to our Channel"
-    submit_username: str = "Submit my Username"
+    join_channel: str = "Join the channel? Yes!"
 
-    channel_link: str = "https://t.me/mrbuckista"
-    submit_username_callback: str = "submit_username_callback"
+    join_channel_callback: str = "join_channel_callback"
 
     @classmethod
     def keyboard(cls) -> Union[InlineKeyboardMarkup]:
@@ -318,12 +316,8 @@ class JoinChannelTaskMenu(Base):
 
         keyboard.add(
             InlineKeyboardButton(
-                text=cls.go_to_channel,
-                url=cls.channel_link
-            ),
-            InlineKeyboardButton(
-                text=cls.submit_username,
-                callback_data=cls.submit_username_callback
+                text=cls.join_channel,
+                callback_data=cls.join_channel_callback
             )
         )
 
@@ -385,22 +379,30 @@ class InviteMenu:
 
 class WithdrawMenu:
 
-    withdraw: str = "💸Withdraw"
+    withdraw: str = "🤑 Withdraw"
+    gift_pretzel: str = "🥨 Gift Pretzel"
     accept_withdraw: str = "Accept"
     decline_withdraw: str = "Decline"
 
     withdraw_callback: str = "withdraw_callback"
+    gift_pretzel_callback: str = "gift_pretzel_callback"
     accept_withdraw_callback: str = "accept_callback"
     decline_withdraw_callback: str = "decline_callback"
 
     @classmethod
     def keyboard(cls) -> Union[InlineKeyboardMarkup]:
-        keyboard = default_inline_keyboard()
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
 
         keyboard.add(
             InlineKeyboardButton(
                 text=cls.withdraw,
                 callback_data=cls.withdraw_callback
+            ),
+            InlineKeyboardButton(
+                text=cls.gift_pretzel,
+                callback_data=cls.gift_pretzel_callback
             )
         )
 
@@ -538,6 +540,26 @@ class AdminMenu(Base):
             InlineKeyboardButton(
                 text=cls.admin,
                 callback_data=cls.admin_callback
+            )
+        )
+
+        return keyboard
+
+
+class TopReferrersMenu:
+
+    all_time: str = "All Time Records"
+
+    all_time_callback: str = "all_time_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.all_time,
+                callback_data=cls.all_time_callback
             )
         )
 

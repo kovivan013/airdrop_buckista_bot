@@ -73,6 +73,7 @@ async def overview(
     total_completed_tasks: int = 0
     total_refferals: int = 0
     total_pretzels: int = 0
+    gifted_pretzels: int = 0
     redeemed_pretzels: int = 0
     today = utils._today()
     end_of_today = today + 86400
@@ -86,6 +87,9 @@ async def overview(
         total_pretzels += user.pretzels["balance"] + user.pretzels["redeemed"]
         redeemed_pretzels += user.pretzels[
             "redeemed"
+        ]
+        gifted_pretzels += user.pretzels[
+            "gifted"
         ]
 
         total_refferals += len(
@@ -107,7 +111,8 @@ async def overview(
         "total_completed_tasks": total_completed_tasks,
         "total_refferals": total_refferals,
         "total_pretzels": total_pretzels,
-        "redeemed_pretzels": redeemed_pretzels
+        "redeemed_pretzels": redeemed_pretzels,
+        "gifted_pretzels": gifted_pretzels
     }
     result._status = HTTPStatus.HTTP_200_OK
 
@@ -130,8 +135,33 @@ async def top_referrers(
     )
 
     refferers: list = []
+    weekly_referrers: list = []
+    week_start: int = utils.week_start()
+
+    query = await session.execute(
+        select(
+            Users.telegram_id
+        ).filter(
+            Users.created_at >= week_start
+        ).filter(
+            Users.referred_by != 0
+        )
+    )
+    week_users = query.scalars().all()
 
     for user in users.scalars().all():
+        weekly_invited: int = 0
+
+        for user_id in user.referred_friends:
+            if user_id in week_users:
+                weekly_invited += 1
+
+        weekly_referrers.append(
+            {
+                "telegram_id": user.telegram_id,
+                "reffered_friends": weekly_invited
+            }
+        )
         refferers.append(
             {
                 "telegram_id": user.telegram_id,
@@ -147,9 +177,24 @@ async def top_referrers(
         key=lambda x: x['reffered_friends'],
         reverse=True
     )
+    weekly_top = sorted(
+        weekly_referrers,
+        key=lambda x: x['reffered_friends'],
+        reverse=True
+    )
 
-    for i, v in zip(range(10), top_referrers):
-        result.data.update(
+    result.data["weekly_top"] = {}
+    result.data["top_referrers"] = {}
+
+    for i, v in zip(range(1, 26), weekly_top):
+        result.data["weekly_top"].update(
+            {
+                i: v
+            }
+        )
+
+    for i, v in zip(range(25), top_referrers):
+        result.data["top_referrers"].update(
             {
                 i: v
             }
@@ -296,6 +341,8 @@ async def weekly_report(
     query = await session.execute(
         select(
             Withdrawals
+        ).order_by(
+            Withdrawals.created_at.desc()
         )
     )
     withdrawals = query.scalars().all()
@@ -304,7 +351,9 @@ async def weekly_report(
 
     for withdrawal in withdrawals:
 
-        if withdrawal.created_at > utils.week_start() - 604800 and withdrawal.created_at < utils.week_start():
+        w_timestamp = withdrawal.created_at
+
+        if w_timestamp > utils.week_start() - 604800 and w_timestamp < utils.week_start():
 
             status_values: dict = {
                 "sent": "Sent",
@@ -315,6 +364,9 @@ async def weekly_report(
             if withdrawal.status in status_values:
 
                 row = [
+                    utils.to_date(
+                        withdrawal.created_at
+                    ),
                     withdrawal.user_id,
                     withdrawal.amount,
                     status_values[
@@ -332,6 +384,7 @@ async def weekly_report(
 
     result.data = {
         "values": [
+            "Created At",
             "User ID",
             "Withdrawal Amount",
             "Payment Status",

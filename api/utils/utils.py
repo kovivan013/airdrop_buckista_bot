@@ -53,15 +53,20 @@ def to_date(
     ))
 
 def month_start() -> int:
-
-    now = datetime.now()
+    pst = pytz.timezone(
+        'Asia/Singapore'
+    )
+    now = datetime.now(pst)
 
     return int(datetime(
         now.year, now.month, 1
     ).timestamp())
 
 def week_start() -> int:
-    now = datetime.now()
+    pst = pytz.timezone(
+        'Asia/Singapore'
+    )
+    now = datetime.now(pst)
 
     week_start = now - timedelta(
         days=now.weekday()

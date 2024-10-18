@@ -53,7 +53,7 @@ def check_pretzel_task(func: Callable) -> Callable:
             if not response_data["allowed"]:
 
                 return await callback.answer(
-                    text="✅ You've completed this task. If you haven't received your Pretzel, please wait patiently.",
+                    text="✅ You've completed this task.",
                     show_alert=True
                 )
 

@@ -6,7 +6,8 @@ from schemas.schemas import (
     BaseUser,
     BaseWithdrawal,
     BaseTransaction,
-    BasePretzelTask
+    BasePretzelTask,
+    BaseWorker
 )
 from sqlalchemy.orm import (
     mapped_column,
@@ -18,6 +19,7 @@ from sqlalchemy import (
     BigInteger,
     JSON,
     Numeric,
+    SmallInteger,
     ARRAY
 )
 
@@ -176,5 +178,30 @@ class Transactions(Base):
 
     def as_model(self) -> Union[BaseTransaction]:
         return BaseTransaction().model_validate(
+            self.as_dict()
+        )
+
+
+class Workers(Base):
+
+    index: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        primary_key=True,
+        index=True
+    )
+    worker_id: Mapped[SmallInteger] = mapped_column(
+        SmallInteger,
+        nullable=False
+    )
+    status: Mapped[SmallInteger] = mapped_column(
+        SmallInteger,
+        nullable=False
+    )
+    response: Mapped[String] = mapped_column(
+        String
+    )
+
+    def as_model(self) -> Union[BaseWorker]:
+        return BaseWorker().model_validate(
             self.as_dict()
         )

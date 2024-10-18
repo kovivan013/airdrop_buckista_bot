@@ -20,7 +20,8 @@ from keyboards.keyboards import (
     AdminMenu,
     WithdrawMenu,
     CashierMenu,
-    PretzelsMenu
+    PretzelsMenu,
+    TopReferrersMenu
 )
 
 
@@ -30,6 +31,7 @@ access_states = [
     AdminStates.user_data,
     AdminStates.lucky_user,
     AdminStates.lucky_amount,
+    AdminStates.weekly_referrers,
     AdminStates.top_referrers,
     AdminStates.main_wallet,
     AdminStates.change_wallet,
@@ -88,6 +90,9 @@ async def overview(
         state: FSMContext
 ) -> None:
     await AdminStates.overview.set()
+    await event.answer(
+        text="Refreshing..."
+    )
     response = requests.get(f"{settings.BASE_API_URL}/admin/overview").json()["data"]
     await event.message.answer(
         text="📊 <b>Overview</b>\n"
@@ -100,7 +105,8 @@ async def overview(
              f"✅ Total Referrals: {response['total_refferals']}\n"
              f"\n"
              f"🥨 Total Pretzels: {response['total_pretzels']}\n"
-             f"🥨 Redeemed: {response['redeemed_pretzels']}",
+             f"🥨 Redeemed: {response['redeemed_pretzels']}\n"
+             f"🥨 Total Gifted: {response['gifted_pretzels']}",
         reply_markup=HomeMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -225,18 +231,51 @@ async def lucky_draw(
         )
 
 @handle_error
-async def top_referrers(
+async def weekly_referrers(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
-    await AdminStates.top_referrers.set()
+    await AdminStates.weekly_referrers.set()
+    await event.answer(
+        text="⏱️ Loading may take up to 30 seconds!",
+        cache_time=5
+    )
 
     response = requests.get(
         url=f"{settings.BASE_API_URL}/admin/top_referrers"
     ).json()["data"]
 
     text = ""
-    for i, v in response.items():
+    for i, v in response["weekly_top"].items():
+        text += f"{i.zfill(2)} / {v['telegram_id']} / {v['reffered_friends']}\n"
+
+    await event.message.answer(
+        text="🏆 <b>Weekly Top Referrers</b>\n"
+             "\n"
+             "<b>Ranking / UserID / Friends Referred</b>\n"
+             f"{text}",
+        reply_markup=TopReferrersMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+
+@handle_error
+async def top_referrers(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.top_referrers.set()
+    await event.answer(
+        text="⏱️ Loading may take up to 30 seconds!",
+        cache_time=5
+    )
+
+    response = requests.get(
+        url=f"{settings.BASE_API_URL}/admin/top_referrers"
+    ).json()["data"]
+
+    text = ""
+    for i, v in response["top_referrers"].items():
         text += f"{v['telegram_id']} / {'@' + v['username'] if v['username'] else 'None'} / {v['reffered_friends']}\n"
 
     await event.message.answer(
@@ -244,7 +283,7 @@ async def top_referrers(
              "\n"
              "<b>UserID / Username / Friends Referred</b>\n"
              f"{text}",
-        reply_markup=HomeMenu.keyboard(),
+        reply_markup=AdminMenu.admin_menu(),
         parse_mode="HTML"
     )
 
@@ -501,7 +540,7 @@ async def accept_pretzel_task(
             chat_id=response_data["user_id"],
             text=f"🎉 <b>Congratulations!</b> \n"
                  f"\n"
-                 f"You received a reward of <b>{response_data['reward']} Pretzels</b>\n",
+                 f"You received a reward of <b>{response_data['reward']} Pretzel{'s' if response_data['reward'] > 1 else ''}</b>\n",
             reply_markup=HomeMenu.keyboard(),
             parse_mode="HTML"
         )
@@ -611,9 +650,16 @@ def register(
         )
     )
     dp.register_callback_query_handler(
-        top_referrers,
+        weekly_referrers,
         Text(
             equals=AdminMenu.top_referrers_callback
+        ),
+        state=access_states
+    )
+    dp.register_callback_query_handler(
+        top_referrers,
+        Text(
+            equals=TopReferrersMenu.all_time_callback
         ),
         state=access_states
     )

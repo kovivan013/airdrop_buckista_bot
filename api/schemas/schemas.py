@@ -6,6 +6,7 @@ class Pretzels(BaseModel):
 
     balance: int = 0
     redeemed: int = 0
+    gifted: int = 0
 
 class BaseUser(BaseModel):
 
@@ -80,3 +81,11 @@ class PretzelRewards(BaseModel):
     upoy_bot: UPOYBotTask = UPOYBotTask()
     join_channel: JoinChannelTask = JoinChannelTask()
     follow_twitter: FollowTwitterTask = FollowTwitterTask()
+
+
+class BaseWorker(BaseModel):
+
+    index: int = 0
+    worker_id: int = 0
+    status: int = 0
+    response: str = ""
