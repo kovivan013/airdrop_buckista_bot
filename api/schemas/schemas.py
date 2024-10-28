@@ -64,6 +64,12 @@ class FollowTwitterTask(BaseModel):
     reward: int = 2
 
 
+class RetweetPostTask(BaseModel):
+
+    title: str = "Retweeting"
+    reward: int = 2
+
+
 class BasePretzelTask(BaseModel):
 
     id: str = ""
@@ -81,6 +87,7 @@ class PretzelRewards(BaseModel):
     upoy_bot: UPOYBotTask = UPOYBotTask()
     join_channel: JoinChannelTask = JoinChannelTask()
     follow_twitter: FollowTwitterTask = FollowTwitterTask()
+    retweet_post: RetweetPostTask = RetweetPostTask()
 
 
 class BaseWorker(BaseModel):

@@ -39,6 +39,7 @@ access_states = [
     AdminStates.invoice_amount
 ]
 
+
 @handle_error
 async def check_admin(
         event: Message,
@@ -50,6 +51,7 @@ async def check_admin(
         reply_markup=HomeMenu.keyboard(),
         parse_mode="HTML"
     )
+
 
 @handle_error
 async def admin_menu(
@@ -72,6 +74,7 @@ async def admin_menu(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def admin_message(
         event: CallbackQuery,
@@ -83,6 +86,7 @@ async def admin_message(
         reply_markup=AdminMenu.keyboard(),
         parse_mode="HTML"
     )
+
 
 @handle_error
 async def overview(
@@ -111,6 +115,7 @@ async def overview(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def enter_user_id(
         event: CallbackQuery,
@@ -124,7 +129,8 @@ async def enter_user_id(
         parse_mode="Markdown"
     )
 
-# @handle_error
+
+@handle_error
 async def user_data(
         event: Message,
         state: FSMContext
@@ -160,7 +166,9 @@ async def user_data(
                  f"<b>Withdrawal Request</b>: {current_withdrawal['data']['amount'] if current_withdrawal['status'] == 200 else 0} USDT\n"
                  f"<b>Total Withdrawals</b>: {total_withdrawals['total_withdrawals']} USDT\n"
                  f"<b>Pretzel</b>: {response_data['pretzels']['balance']} / {response_data['pretzels']['redeemed']}",
-            reply_markup=AdminMenu.admin_menu(),
+            reply_markup=AdminMenu.resend_keyboard(
+                user_id=response_data['telegram_id']
+            ),
             parse_mode="HTML"
         )
 
@@ -168,6 +176,50 @@ async def user_data(
         text=response["message"],
         reply_markup=HomeMenu.keyboard()
     )
+
+
+@handle_error
+async def resend_withdrawal(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    user_id = event.data[:-13]
+    response = requests.get(
+        url=f"{settings.BASE_API_URL}/user/{user_id}"
+    )
+    response_data = response.json()["data"]
+    current_withdrawal = requests.post(
+        url=f"{settings.BASE_API_URL}/user/current_withdrawal",
+        json={
+            "withdrawal_id": response_data['current_withdrawal']
+        }
+    )
+
+    if current_withdrawal.status_code == 200:
+        withdrawal_response = current_withdrawal.json()["data"]
+
+        await bot.send_message(
+            chat_id=settings.ADMINS_CHAT,
+            text="🆕 <b>New Withdrawal Request</b>\n"
+                 "\n"
+                 f"<b>User ID</b>: {user_id}\n"
+                 f"<b>Username</b>: {'@' + response_data['username']}\n"
+                 f"<b>Requested Balance</b>: {withdrawal_response['amount']} USDT\n",
+            reply_markup=WithdrawMenu.control(
+                withdrawal_id=response_data['current_withdrawal']
+            ),
+            parse_mode="HTML"
+        )
+        return await event.answer(
+            text="📪 Withdrawal request has been resent.",
+            show_alert=True
+        )
+
+    await event.answer(
+        text="📭 The user has no pending withdrawal requests.",
+        show_alert=True
+    )
+
 
 @handle_error
 async def lucky_draw_user(
@@ -181,6 +233,7 @@ async def lucky_draw_user(
              "Enter the UserID of the user\n",
         parse_mode="Markdown"
     )
+
 
 @handle_error
 async def lucky_draw_amount(
@@ -198,6 +251,7 @@ async def lucky_draw_amount(
              f"Enter the prize amount for the user with ID {event.text}\n",
         parse_mode="Markdown"
     )
+
 
 @handle_error
 async def lucky_draw(
@@ -229,6 +283,7 @@ async def lucky_draw(
             text=response["message"],
             reply_markup=HomeMenu.keyboard()
         )
+
 
 @handle_error
 async def weekly_referrers(
@@ -287,6 +342,7 @@ async def top_referrers(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def cashier(
         event: CallbackQuery,
@@ -321,6 +377,7 @@ async def cashier(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def main_wallet(
         event: CallbackQuery,
@@ -336,6 +393,7 @@ async def main_wallet(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def change_wallet(
         event: CallbackQuery,
@@ -350,6 +408,7 @@ async def change_wallet(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def set_wallet(
         event: Message,
@@ -362,6 +421,7 @@ async def set_wallet(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def invoice_amount(
         event: CallbackQuery,
@@ -373,6 +433,7 @@ async def invoice_amount(
         reply_markup=HomeMenu.keyboard(),
         parse_mode="HTML"
     )
+
 
 @handle_error
 async def deposit_balance(
@@ -411,6 +472,7 @@ async def deposit_balance(
         text=f"New deposit for {amount:.1f} USDT"
     )
 
+
 @handle_error
 async def weekly_report(
         event: CallbackQuery,
@@ -440,6 +502,7 @@ async def weekly_report(
         reply_markup=AdminMenu.admin_menu(),
         parse_mode="HTML"
     )
+
 
 @handle_error
 async def accept_withdraw(
@@ -510,7 +573,6 @@ async def decline_withdraw(
         )
 
 
-
 @handle_error
 async def accept_pretzel_task(
         event: CallbackQuery,
@@ -571,11 +633,21 @@ async def decline_pretzel_task(
             parse_mode="HTML"
         )
 
+        text = (
+            "❌ <b>Pretzel Order Declined</b>\n"
+            "\n"
+            "Your submitted information does not meet the criteria. Please try again.\n"
+        )
+
+        if response_data["type"] in ["retweet_post"]:
+
+            text = ("⛔️ <b>You missed the free Pretzel</b>\n"
+                    "\n"
+                    "Your submitted information does not meet the criteria.")
+
         await bot.send_message(
             chat_id=response_data["user_id"],
-            text="❌ <b>Pretzel Order Declined</b>\n"
-                 "\n"
-                 "Your submitted information does not meet the criteria. Please try again.\n",
+            text=text,
             reply_markup=HomeMenu.keyboard(),
             parse_mode="HTML"
         )
@@ -608,6 +680,13 @@ def register(
     )
     dp.register_message_handler(
         user_data,
+        state=AdminStates.user_data
+    )
+    dp.register_callback_query_handler(
+        resend_withdrawal,
+        Text(
+            endswith="_admin_resend"
+        ),
         state=AdminStates.user_data
     )
     dp.register_callback_query_handler(

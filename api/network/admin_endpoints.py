@@ -692,6 +692,7 @@ async def decline_pretzel_task(
         "user_id": user.telegram_id,
         "username": f"@{user.username}" if user.username else "None",
         "task": task_data["title"],
+        "type": task.task,
         "payload": task.payload,
         "status": task.status
     }

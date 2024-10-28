@@ -48,9 +48,25 @@ def check_pretzel_task(func: Callable) -> Callable:
         )
 
         if response.status_code == 200:
-
             response_data = response.json()["data"]
+
             if not response_data["allowed"]:
+
+                if response_data["task"] in ["retweet_post"]:
+                    match response_data["status"]:
+                        case "declined":
+
+                            return await callback.answer(
+                                text="⛔️ You missed the free Pretzel.",
+                                show_alert=True
+                            )
+
+                        case "pending":
+
+                            return await callback.answer(
+                                text="️🌀 Your submission is still under review.",
+                                show_alert=True
+                            )
 
                 return await callback.answer(
                     text="✅ You've completed this task.",
@@ -83,6 +99,15 @@ def check_payload(func: Callable) -> Callable:
                     )
 
             case WelcomeGiftStates.profile_name.state:
+                if message.text[:14] != "https://x.com/":
+
+                    return await message.answer(
+                        text="<i>Invalid Profile Name, please submit again.</i>",
+                        reply_markup=HomeMenu.keyboard(),
+                        parse_mode="HTML"
+                    )
+
+            case WelcomeGiftStates.retweet_name.state:
                 if message.text[:14] != "https://x.com/":
 
                     return await message.answer(

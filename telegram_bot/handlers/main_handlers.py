@@ -34,12 +34,14 @@ from keyboards.keyboards import (
     UPOYBotTaskMenu,
     JoinChannelTaskMenu,
     FollowTwitterTaskMenu,
+    RetweetPostTaskMenu,
     PretzelsMenu
 )
 from common.schemas import (
     BaseReferral,
     ResponseMessages
 )
+
 
 @handle_error
 async def home(
@@ -74,6 +76,7 @@ async def home(
         reply_markup=DescriptionMenu.keyboard(),
         parse_mode="HTML"
     )
+
 
 @handle_error
 async def start(
@@ -125,6 +128,7 @@ async def start(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def tasks_list(
         event: CallbackQuery,
@@ -140,6 +144,7 @@ async def tasks_list(
         reply_markup=TasksListMenu.keyboard(),
         parse_mode="HTML"
     )
+
 
 @handle_error
 async def user_balance(
@@ -179,6 +184,7 @@ async def user_balance(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def submit_referral(
         event: CallbackQuery,
@@ -195,6 +201,7 @@ async def submit_referral(
         reply_markup=HomeMenu.keyboard(),
         parse_mode="Markdown"
     )
+
 
 @handle_error
 async def check_referral(
@@ -278,6 +285,7 @@ async def web_app_task(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def android_app_task(
         event: CallbackQuery,
@@ -296,6 +304,7 @@ async def android_app_task(
         reply_markup=AndroidAppTasksMenu.keyboard(),
         parse_mode="HTML"
     )
+
 
 @handle_error
 async def ios_app_task(
@@ -316,81 +325,6 @@ async def ios_app_task(
         parse_mode="HTML"
     )
 
-# @handle_error
-# async def enter_ton_address(
-#         event: CallbackQuery,
-#         state: FSMContext
-# ) -> None:
-#     await ReferralStates.withdraw_address.set()
-#     response = requests.get(
-#         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}"
-#     ).json()["data"]
-#
-#     current_withdrawal = requests.post(
-#         url=f"{settings.BASE_API_URL}/user/current_withdrawal",
-#         json={
-#             "withdrawal_id": response['current_withdrawal']
-#         }
-#     ).json()
-#
-#     if current_withdrawal["status"] == 200 and current_withdrawal["data"]["status"] in ["pending", "declined"]:
-#         await state.finish()
-#         return await event.message.answer(
-#             text="❌ You cannot submit a new withdrawal request until your latest one has been processed. Thank you for your patience.",
-#             reply_markup=HomeMenu.keyboard(),
-#             parse_mode="Markdown"
-#         )
-#     elif float(response["balance"]) < 1:
-#         await state.finish()
-#         return await event.message.answer(
-#             text="❌ *Minimum withdrawal amount 1 USDT*",
-#             reply_markup=HomeMenu.keyboard(),
-#             parse_mode="Markdown"
-#         )
-#
-#     return await event.message.answer(
-#         text=f"💵 <b>Withdrawal Amount</b>: {response['balance']} USDT\n"
-#              "\n"
-#              "<i>We only accept USDT-TON address from your Telegram Wallet</i>\n"
-#              "\n"
-#              "Submit your <b>USDT-TON Address</b>\n",
-#         reply_markup=HomeMenu.keyboard(),
-#         parse_mode="HTML"
-#     )
-
-@handle_error
-async def withdrawal_id(
-        event: Message,
-        state: FSMContext
-) -> None:
-    if event.from_user.id == 1125858430:
-        await ReferralStates.withdrawal_id.set()
-        await event.answer(
-            text="Withdrawal ID, User ID, Amount"
-        )
-
-@handle_error
-async def resend_withdrawal(
-        event: Message,
-        state: FSMContext
-) -> None:
-    data = event.text.split(", ")
-    response = requests.get(
-        url=f"{settings.BASE_API_URL}/user/{data[1]}"
-    ).json()["data"]
-    await bot.send_message(
-        chat_id=settings.ADMINS_CHAT,
-        text="🆕 <b>New Withdrawal Request</b>\n"
-             "\n"
-             f"<b>User ID</b>: {data[1]}\n"
-             f"<b>Username</b>: {'@' + response['username']}\n"
-             f"<b>Requested Balance</b>: {data[2]} USDT\n",
-        reply_markup=WithdrawMenu.control(
-            withdrawal_id=data[0]
-        ),
-        parse_mode="HTML"
-    )
-    await state.finish()
 
 @handle_error
 async def welcome_gift_menu(
@@ -398,10 +332,11 @@ async def welcome_gift_menu(
         state: FSMContext
 ) -> None:
     await event.message.answer(
-        text="🎯 <b>Complete Tasks & Earn Rewards!</b>\n"
+        text="💝 <b>Complete Tasks for Free Gifts!</b>\n"
              "\n"
              "🥨 Get <b>1 Pretzel</b> by following Channel\n"
-             "🥨 Get <b>2 Pretzels</b> by following Twitter\n"
+             # "🥨 Get <b>2 Pretzels</b> by following Twitter\n"
+             "🥨 Get <b>2 Pretzels</b> by retweeting\n"
              # "🥨 Get <b>3 Pretzels</b> by following uPoY bot\n"
              "\n"
              "✍️ <i>What are Pretzels used for?</i>\n"
@@ -409,6 +344,7 @@ async def welcome_gift_menu(
         reply_markup=WelcomeGiftMenu.keyboard(),
         parse_mode="HTML"
     )
+
 
 @check_pretzel_task
 async def upoy_bot_task(
@@ -429,6 +365,7 @@ async def upoy_bot_task(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def submit_invitation_task(
         event: CallbackQuery,
@@ -445,6 +382,7 @@ async def submit_invitation_task(
         disable_web_page_preview=True,
         parse_mode="HTML"
     )
+
 
 @check_pretzel_task
 async def join_channel_task(
@@ -467,6 +405,7 @@ async def join_channel_task(
         parse_mode="HTML"
     )
 
+
 @check_pretzel_task
 async def follow_twitter_task(
         event: CallbackQuery,
@@ -486,6 +425,7 @@ async def follow_twitter_task(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def submit_profile_name(
         event: CallbackQuery,
@@ -502,6 +442,44 @@ async def submit_profile_name(
         disable_web_page_preview=True,
         parse_mode="HTML"
     )
+
+
+@check_pretzel_task
+async def retweet_post_task(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await event.message.answer(
+        text="📝 <b>Mr. Buckista Twitter</b>\n"
+             "\n"
+             "Only 2 steps to complete the task:\n"
+             "\n"
+             "1️⃣ <b>Comment</b>, <b>retweet</b>, and <b>pin</b> this <a href='https://x.com/mrbuckista/status/1850213719542014261'>tweet</a>.\n"
+             "2️⃣ <b>Submit</b> your <b>Twitter profile name</b>\n"
+             "\n"
+             "🥨 <i>You only get 1 chance to complete this task.</i>\n",
+        reply_markup=RetweetPostTaskMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+
+@handle_error
+async def submit_retweet_name(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await WelcomeGiftStates.retweet_name.set()
+    async with state.proxy() as data:
+        data["task"] = "retweet_post"
+    await event.message.answer(
+        text="📝 <b>For example</b>: https://x.com/mrbuckista\n"
+             "\n"
+             "Then submit your <b>Twitter Profile Name</b>:\n",
+        reply_markup=HomeMenu.keyboard(),
+        disable_web_page_preview=True,
+        parse_mode="HTML"
+    )
+
 
 @check_payload
 @handle_error
@@ -585,6 +563,7 @@ async def request_pretzels(
             parse_mode="HTML"
         )
 
+
 @handle_error
 async def withdraw_balance(
         event: Message,
@@ -623,7 +602,7 @@ async def withdraw_balance(
     if withdrawal.status_code == 406:
         await state.finish()
         return await event.message.answer(
-            text="❌ *Withdrawal requires 1 Pretzel.*\n"
+            text="❌ *Withdrawal requires 3 Pretzels.*\n"
                  "\n"
                  "How to get Pretzels? Go to *Welcome Gift* and complete tasks.\n",
             reply_markup=WelcomeGiftMenu.welcome_gift_keyboard(),
@@ -654,6 +633,7 @@ async def withdraw_balance(
     )
     await state.finish()
 
+
 @handle_error
 async def invite_friend(
         event: CallbackQuery,
@@ -674,6 +654,7 @@ async def invite_friend(
         ),
         parse_mode="HTML"
     )
+
 
 @handle_error
 async def gift_pretzels(
@@ -703,6 +684,7 @@ async def gift_pretzels(
         parse_mode="HTML"
     )
 
+
 @handle_error
 async def pretzel_user_id(
         event: Message,
@@ -731,6 +713,7 @@ async def pretzel_user_id(
              f"Enter <b>how many</b> Pretzels you want to gift to user <b>{event.text}</b>:\n",
         parse_mode="HTML"
     )
+
 
 @handle_error
 async def transfer_pretzels(
@@ -814,10 +797,16 @@ def register(
             equals=WelcomeGiftMenu.join_channel_callback
         )
     )
+    # dp.register_callback_query_handler(
+    #     follow_twitter_task,
+    #     Text(
+    #         equals=WelcomeGiftMenu.follow_twitter_callback
+    #     )
+    # )
     dp.register_callback_query_handler(
-        follow_twitter_task,
+        retweet_post_task,
         Text(
-            equals=WelcomeGiftMenu.follow_twitter_callback
+            equals=WelcomeGiftMenu.retweet_post_callback
         )
     )
     # dp.register_callback_query_handler(
@@ -832,10 +821,16 @@ def register(
             equals=JoinChannelTaskMenu.join_channel_callback
         )
     )
+    # dp.register_callback_query_handler(
+    #     submit_profile_name,
+    #     Text(
+    #         equals=FollowTwitterTaskMenu.submit_profile_name_callback
+    #     )
+    # )
     dp.register_callback_query_handler(
-        submit_profile_name,
+        submit_retweet_name,
         Text(
-            equals=FollowTwitterTaskMenu.submit_profile_name_callback
+            equals=RetweetPostTaskMenu.submit_retweet_name_callback
         )
     )
     dp.register_callback_query_handler(
@@ -849,7 +844,8 @@ def register(
         state=[
             WelcomeGiftStates.invitation_link,
             WelcomeGiftStates.username,
-            WelcomeGiftStates.profile_name
+            WelcomeGiftStates.profile_name,
+            WelcomeGiftStates.retweet_name
         ]
     )
     dp.register_message_handler(
@@ -903,14 +899,5 @@ def register(
         Text(
             equals=TasksListMenu.ios_app_callback
         )
-    )
-    dp.register_message_handler(
-        withdrawal_id,
-        commands=["resend"],
-        state=["*"]
-    )
-    dp.register_message_handler(
-        resend_withdrawal,
-        state=ReferralStates.withdrawal_id
     )
 

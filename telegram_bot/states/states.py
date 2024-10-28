@@ -35,3 +35,4 @@ class WelcomeGiftStates(StatesGroup):
     invitation_link = State()
     username = State()
     profile_name = State()
+    retweet_name = State()

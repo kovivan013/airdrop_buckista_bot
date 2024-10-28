@@ -420,8 +420,24 @@ async def check_pretzel_task(
 
     allowed: bool = False
     onetime_task: bool = False
+    unique_task: bool = False
+    status: str = "undefined"
+
+    query = await session.execute(
+        select(
+            PretzelTasks
+        ).filter(
+            PretzelTasks.user_id == telegram_id
+        ).filter(
+            PretzelTasks.status == "pending"
+        ).filter(
+            PretzelTasks.task == task
+        )
+    )
+    user_task = query.scalars().first()
 
     if task in ["join_channel", "follow_twitter"]:
+
         query = await session.execute(
             select(
                 PretzelTasks
@@ -435,29 +451,39 @@ async def check_pretzel_task(
                 PretzelTasks.task == task
             )
         )
-        onetime_task = query.scalars().all()
+        onetime_task = query.scalars().first()
 
-    query = await session.execute(
-        select(
-            PretzelTasks
-        ).filter(
-            PretzelTasks.user_id == telegram_id
-        ).filter(
-            PretzelTasks.status == "pending"
-        ).filter(
-            PretzelTasks.task == task
+    elif task in ["retweet_post"]:
+
+        query = await session.execute(
+            select(
+                PretzelTasks
+            ).filter(
+                PretzelTasks.user_id == telegram_id
+            ).filter(
+                PretzelTasks.status.in_(
+                    ["pending", "approved", "declined"]
+                )
+            ).filter(
+                PretzelTasks.task == task
+            )
         )
-    )
-    user_task = query.scalars().all()
+        unique_task = query.scalars().first()
+
+    for j in [user_task, onetime_task, unique_task]:
+        if j:
+            status = j.status
 
     if not user_task:
         allowed = True
 
-    if onetime_task:
+    if onetime_task or unique_task:
         allowed = False
 
     result.data = {
-        "allowed": allowed
+        "allowed": allowed,
+        "status": status,
+        "task": task
     }
     result._status = HTTPStatus.HTTP_200_OK
 
@@ -494,8 +520,10 @@ async def pretzels_task(
         )._report()
 
     onetime_task: bool = False
+    unique_task: bool = False
 
     if parameters.task in ["join_channel", "follow_twitter"]:
+
         query = await session.execute(
             select(
                 PretzelTasks
@@ -511,6 +539,23 @@ async def pretzels_task(
         )
         onetime_task = query.scalars().all()
 
+    elif parameters.task in ["retweet_post"]:
+
+        query = await session.execute(
+            select(
+                PretzelTasks
+            ).filter(
+                PretzelTasks.user_id == telegram_id
+            ).filter(
+                PretzelTasks.status.in_(
+                    ["pending", "approved", "declined"]
+                )
+            ).filter(
+                PretzelTasks.task == parameters.task
+            )
+        )
+        unique_task = query.scalars().all()
+
     query = await session.execute(
         select(
             PretzelTasks
@@ -524,7 +569,7 @@ async def pretzels_task(
     )
     user_task = query.scalars().all()
 
-    if user_task or onetime_task:
+    if user_task or onetime_task or unique_task:
         return await Reporter(
             exception=exceptions.ItemExists,
             message="The task has been already completed."
@@ -631,10 +676,10 @@ async def withdraw_balance(
             message="The balance must be > 1.2 to withdraw."
         )._report()
 
-    if user.pretzels["balance"] < 1:
+    if user.pretzels["balance"] < 3:
         return await Reporter(
             exception=exceptions.NotAcceptable,
-            message="To withdraw funds you need at least 1 pretzel."
+            message="To withdraw funds you need at least 3 pretzels."
         )._report()
 
     data_scheme = BaseWithdrawal(
@@ -644,8 +689,8 @@ async def withdraw_balance(
         created_at=utils.timestamp()
     )
 
-    user.pretzels["balance"] -= 1
-    user.pretzels["redeemed"] += 1
+    user.pretzels["balance"] -= 3
+    user.pretzels["redeemed"] += 3
 
     await session.execute(
         update(

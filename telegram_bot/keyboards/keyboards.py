@@ -110,10 +110,12 @@ class WelcomeGiftMenu(DescriptionMenu):
     upoy_bot: str = "uPoY Bot"
     join_channel: str = "Join Channel"
     follow_twitter: str = "Follow Twitter"
+    retweet_post: str = "Retweeting"
 
     upoy_bot_callback: str = "upoy_bot"
     join_channel_callback: str = "join_channel"
     follow_twitter_callback: str = "follow_twitter"
+    retweet_post_callback: str = "retweet_post"
 
     @classmethod
     def keyboard(cls) -> Union[InlineKeyboardMarkup]:
@@ -130,9 +132,13 @@ class WelcomeGiftMenu(DescriptionMenu):
                 text=cls.join_channel,
                 callback_data=cls.join_channel_callback
             ),
+            # InlineKeyboardButton(
+            #     text=cls.follow_twitter,
+            #     callback_data=cls.follow_twitter_callback
+            # ),
             InlineKeyboardButton(
-                text=cls.follow_twitter,
-                callback_data=cls.follow_twitter_callback
+                text=cls.retweet_post,
+                callback_data=cls.retweet_post_callback
             )
         )
 
@@ -352,6 +358,34 @@ class FollowTwitterTaskMenu(Base):
         return keyboard
 
 
+class RetweetPostTaskMenu(Base):
+
+    retweet_post: str = "Retweet this Tweet"
+    submit_retweet_name: str = "Submit my Profile Name"
+
+    retweet_link: str = "https://x.com/mrbuckista/status/1850213719542014261"
+    submit_retweet_name_callback: str = "submit_profile_name_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.retweet_post,
+                url=cls.retweet_link
+            ),
+            InlineKeyboardButton(
+                text=cls.submit_retweet_name,
+                callback_data=cls.submit_retweet_name_callback
+            )
+        )
+
+        return keyboard
+
+
 class InviteMenu:
 
     invite_friends: str = "Invite friends"
@@ -466,6 +500,7 @@ class AdminMenu(Base):
     lucky_draw: str = "Lucky Draw"
     top_referrers: str = "Top Referrers"
     cashier: str = "Cashier"
+    resend_withdrawal: str = "📮 Resend Withdrawal"
 
     admin_callback: str = "admin_callback"
     overview_callback: str = "overview_callback"
@@ -514,6 +549,28 @@ class AdminMenu(Base):
         keyboard = default_inline_keyboard()
 
         keyboard.add(
+            InlineKeyboardButton(
+                text=cls.admin,
+                callback_data=cls.admin_callback
+            )
+        )
+
+        return keyboard
+
+    @classmethod
+    def resend_keyboard(
+            cls,
+            user_id: Union[str, int]
+    ) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard(
+            row_width=1
+        )
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.resend_withdrawal,
+                callback_data=f"{user_id}_admin_resend"
+            ),
             InlineKeyboardButton(
                 text=cls.admin,
                 callback_data=cls.admin_callback

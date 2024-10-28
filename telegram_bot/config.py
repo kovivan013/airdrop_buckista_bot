@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     BASE_API_URL: str = "http://tapi.buckista.com"
 
-    CRYPTOBOT_TOKEN: str = ""
+    CRYPTOBOT_TOKEN: str
     ADMINS_CHAT: int = -1002430116586
     ADMINS_CHAT: int = -4556254373
     OFFICIAL_CHANNEL: int = -1002202854690
