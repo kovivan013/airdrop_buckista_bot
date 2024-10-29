@@ -13,11 +13,11 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     ADMIN_PASSWORD: str
 
-    BASE_API_URL: str = "http://tapi.buckista.com"
+    BASE_API_URL: str = "http://api.buckista.com"
 
     CRYPTOBOT_TOKEN: str
     ADMINS_CHAT: int = -1002430116586
-    ADMINS_CHAT: int = -4556254373
+    # ADMINS_CHAT: int = -4556254373
     OFFICIAL_CHANNEL: int = -1002202854690
     PRETZELS_CHAT: int = -1002299302859
 

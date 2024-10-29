@@ -513,9 +513,10 @@ async def accept_withdraw(
 
     response = requests.post(
         url=f"{settings.BASE_API_URL}/admin/approve_withdrawal?admin_id={event.from_user.id}&withdrawal_id={withdrawal_id}&message_id={event.message.message_id}"
-    ).json()
+    )
 
-    if response["status"] == 200:
+    if response.status_code == 200:
+        response_data = response.json()["data"]
         text = event.message.text[25:]
 
         await event.message.edit_text(
@@ -525,19 +526,71 @@ async def accept_withdraw(
             parse_mode="HTML"
         )
 
-        # await bot.send_message(
-        #     chat_id=response["data"]["user_id"],
-        #     text="✅ <b>Withdrawal Request Approved</b>\n"
-        #          "\n"
-        #          "Hello! Your withdrawal request has been successfully approved.\n"
-        #          "\n"
-        #          f"<b>Requested Amount</b>: {response['data']['amount']} USDT\n"
-        #          "The funds will be transferred to your account shortly.\n"
-        #          "\n"
-        #          "For further questions, please join our channel.\n",
-        #     reply_markup=HomeMenu.keyboard(),
-        #     parse_mode="HTML"
-        # )
+        transfer_response = requests.post(
+            url=f"{settings.BASE_API_URL}/user/{response_data['user_id']}/transfer_funds",
+            json={
+                "token": settings.CRYPTOBOT_TOKEN
+            }
+        )
+
+        if transfer_response.status_code == 200:
+
+            transfer_data = transfer_response.json()["data"]
+            withdrawal_data = transfer_data["request"]
+
+            if transfer_data["status"] == "sent":
+                try:
+                    await event.message.edit_text(
+                        text="✅ <b>Withdrawal Request Approved</b>\n"
+                             "\n"
+                             f"<b>User ID</b>: {withdrawal_data['user_id']}\n"
+                             f"<b>Username</b>: {withdrawal_data['username']}\n"
+                             f"<b>Requested Balance</b>: {withdrawal_data['amount']} USDT\n"
+                             f"\n"
+                             f"<b>Payment status</b>: Sent\n"
+                             f"<b>Last activity</b>: {transfer_data['updated_at']}",
+                        reply_markup={},
+                        parse_mode="HTML"
+                    )
+                    await bot.send_message(
+                        chat_id=withdrawal_data["user_id"],
+                        text="✅ <b>Withdrawal Request Approved</b>\n"
+                             "\n"
+                             "Hello! Your withdrawal request has been successfully approved.\n"
+                             "\n"
+                             f"<b>Requested Amount</b>: {withdrawal_data['amount']} USDT\n"
+                             "The funds will be transferred to your account shortly.\n"
+                             "\n"
+                             "For further questions, please join our channel.\n",
+                        reply_markup=HomeMenu.keyboard(),
+                        parse_mode="HTML"
+                    )
+                except:
+                    pass
+
+            elif transfer_data["status"] == "failed":
+
+                requests.post(
+                    url=f"{settings.BASE_API_URL}/admin/reset_withdrawal?withdrawal_id={withdrawal_data['id']}"
+                )
+
+                try:
+                    await event.message.edit_text(
+                        text="🆕 <b>New Withdrawal Request</b>\n"
+                             "\n"
+                             f"<b>User ID</b>: {withdrawal_data['user_id']}\n"
+                             f"<b>Username</b>: {withdrawal_data['username']}\n"
+                             f"<b>Requested Balance</b>: {withdrawal_data['amount']} USDT\n"
+                             f"\n"
+                             f"<b>Payment status</b>: Failed\n"
+                             f"<b>Last activity</b>: {transfer_data['updated_at']}",
+                        reply_markup=WithdrawMenu.control(
+                            withdrawal_id=withdrawal_data["id"]
+                        ),
+                        parse_mode="HTML"
+                    )
+                except:
+                    pass
 
 
 @handle_error

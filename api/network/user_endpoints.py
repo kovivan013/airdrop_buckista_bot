@@ -5,7 +5,7 @@ from fastapi import (
     Request,
     Query,
 )
-from uuid import UUID
+from aiocryptopay import AioCryptoPay, Networks
 from typing_extensions import Annotated
 from datetime import datetime
 from typing import Union, AsyncIterable
@@ -25,24 +25,28 @@ from common.dtos import (
     UserCreate,
     # BalanceWithdraw,
     WithdrawalStatus,
-    CompletePretzelTask
+    CompletePretzelTask,
+    TransferToken
 )
 from database.models.models import (
     Users,
     Withdrawals,
     PretzelTasks,
-    Workers
+    Workers,
+    Transactions
 )
 from schemas.schemas import (
     BaseUser,
     BaseWithdrawal,
     BasePretzelTask,
     PretzelRewards,
-    BaseWorker
+    BaseWorker,
+    BaseTransaction
 )
 from services import exceptions
 from schemas.base import DataStructure
 from utils import utils
+from config import settings
 
 
 user_router = APIRouter()
@@ -811,9 +815,46 @@ async def gift_pretzel(
     return result
 
 
-@user_router.post("/workers")
-async def update_workers(
-        parameters: BaseWorker,
+# @user_router.post("/workers")
+# async def update_workers(
+#         parameters: BaseWorker,
+#         request: Request,
+#         session: AsyncSession = Depends(
+#             core.create_sa_session
+#         )
+# ) -> Union[DataStructure]:
+#     result = DataStructure()
+#
+#     iteration = await session.get(
+#         Workers,
+#         parameters.index
+#     )
+#
+#     if iteration:
+#         return await Reporter(
+#             exception=exceptions.ItemNotFound,
+#             message="Iteration exists"
+#         )._report()
+#
+#     session.add(
+#         Workers(
+#             **parameters.model_dump()
+#         )
+#     )
+#
+#     await session.commit()
+#     await session.close()
+#
+#     result.data = parameters.model_dump()
+#     result._status = HTTPStatus.HTTP_200_OK
+#
+#     return result
+
+
+@user_router.post("/{telegram_id}/transfer_funds")
+async def transfer_funds(
+        telegram_id: int,
+        parameters: TransferToken,
         request: Request,
         session: AsyncSession = Depends(
             core.create_sa_session
@@ -821,27 +862,86 @@ async def update_workers(
 ) -> Union[DataStructure]:
     result = DataStructure()
 
-    iteration = await session.get(
-        Workers,
-        parameters.index
+    crypto_bot = AioCryptoPay(
+        token=parameters.token,
+        network=Networks.MAIN_NET
     )
 
-    if iteration:
+    try:
+        await crypto_bot.get_me()
+    except:
         return await Reporter(
-            exception=exceptions.ItemNotFound,
-            message="Iteration exists"
+            exception=exceptions.UnautorizedException
         )._report()
 
-    session.add(
-        Workers(
-            **parameters.model_dump()
+    query = await session.execute(
+        select(
+            Withdrawals
+        ).filter(
+            Withdrawals.user_id == telegram_id
+        ).filter(
+            Withdrawals.status == "approved"
         )
     )
+    withdrawal = query.scalars().first()
+
+    if not withdrawal:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="No approved withdrawals."
+        )._report()
+
+    withdrawal.status = "sent"
+
+    try:
+        spend_id = utils._uuid()
+        transfer_response = await crypto_bot.transfer(
+            user_id=withdrawal.user_id,
+            asset="USDT",
+            amount=float(withdrawal.amount),
+            spend_id=spend_id
+        )
+        session.add(
+            Transactions(
+                **BaseTransaction(
+                    transfer_id=transfer_response.transfer_id,
+                    withdrawal_id=withdrawal.id,
+                    timestamp=utils.timestamp(),
+                    spend_id=spend_id
+                ).model_dump()
+            )
+        )
+    except:
+        withdrawal.status = "failed"
+
+
+    user = await session.get(
+        Users,
+        telegram_id
+    )
+    username: str = "None"
+
+    if user and user.username:
+        username = f"@{user.username}"
+
+    withdrawal.updated_at = utils.timestamp()
 
     await session.commit()
     await session.close()
 
-    result.data = parameters.model_dump()
+    result.data = {
+        "message_id": withdrawal.message_id,
+        "status": withdrawal.status,
+        "updated_at": utils.to_date(
+            withdrawal.updated_at
+        ),
+        "request": {
+            "id": withdrawal.id,
+            "user_id": withdrawal.user_id,
+            "username": username,
+            "amount": withdrawal.amount
+        }
+    }
     result._status = HTTPStatus.HTTP_200_OK
 
     return result
