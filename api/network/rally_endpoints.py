@@ -64,12 +64,11 @@ async def rally_settings(
         )
     )
     all_rounds = query.scalars().all()
-    active_round = query.scalars().first()
 
-    if not active_round:
-        active_round = BaseRally().model_dump()
+    if all_rounds:
+        active_round = all_rounds[0].as_dict()
     else:
-        active_round = active_round.as_dict()
+        active_round = BaseRally().model_dump()
 
     rounds: dict = {
         "active": active_round
