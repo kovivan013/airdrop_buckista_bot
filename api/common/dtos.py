@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import List
 
 
 class UserCreate(BaseModel):
@@ -6,11 +7,6 @@ class UserCreate(BaseModel):
     telegram_id: int = 0
     username: str = ""
     referred_by: int = 0
-
-
-# class BalanceWithdraw(BaseModel):
-#
-#     ton_address: str = ""
 
 
 class WithdrawalStatus(BaseModel):
@@ -27,3 +23,11 @@ class CompletePretzelTask(BaseModel):
 
     task: str = ""
     payload: str = ""
+
+
+class RallyCreate(BaseModel):
+
+    admin_id: int = 0
+    start_time: int = 0
+    end_time: int = 0
+    allowed_users: List[int] = []

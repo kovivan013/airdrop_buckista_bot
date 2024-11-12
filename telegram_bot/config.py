@@ -12,16 +12,25 @@ class Settings(BaseSettings):
 
     BOT_TOKEN: str
     ADMIN_PASSWORD: str
+    BOTNET: str
+    SIGN_KEY: str
 
-    BASE_API_URL: str = "http://api.buckista.com"
+    BASE_API_URL: str = "http://tapi.buckista.com"
 
     CRYPTOBOT_TOKEN: str
     ADMINS_CHAT: int = -1002430116586
-    # ADMINS_CHAT: int = -4556254373
+    ADMINS_CHAT: int = -4556254373
     OFFICIAL_CHANNEL: int = -1002202854690
     PRETZELS_CHAT: int = -1002299302859
 
+
+class BotSettings:
+
+    RETWEETING_LINK: str = "https://x.com/mrbuckista/status/1853669490195939766"
+
+
 settings = Settings()
+bot_settings = BotSettings()
 storage = MemoryStorage()
 
 bot = Bot(

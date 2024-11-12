@@ -2,7 +2,7 @@ import csv
 import requests
 
 from aiogram import Dispatcher
-from config import settings, bot
+from config import settings, bot, bot_settings
 from utils import utils
 from aiocryptopay import AioCryptoPay, Networks
 from decorators.decorators import private_message, handle_error
@@ -21,7 +21,11 @@ from keyboards.keyboards import (
     WithdrawMenu,
     CashierMenu,
     PretzelsMenu,
-    TopReferrersMenu
+    TopReferrersMenu,
+    RetweetingTaskEditMenu,
+    ManageGiftMenu,
+    RallySettingsMenu,
+    JoinRallyMenu
 )
 
 
@@ -36,7 +40,12 @@ access_states = [
     AdminStates.main_wallet,
     AdminStates.change_wallet,
     AdminStates.cashier,
-    AdminStates.invoice_amount
+    AdminStates.invoice_amount,
+    AdminStates.welcome_gift,
+    AdminStates.retweeting_task,
+    AdminStates.submit_link,
+    AdminStates.rally_settings,
+    AdminStates.select_round
 ]
 
 
@@ -97,8 +106,24 @@ async def overview(
     await event.answer(
         text="Refreshing..."
     )
+    msg = await event.message.answer(
+        text="📊 <b>Overview Loading...</b>\n"
+             "\n"
+             f"⏰ Total users: -\n"
+             f"⏰ Total Registered Users: -\n"
+             f"⏰ Today: -\n"
+             "\n"
+             f"⏰ Total Completed Tasks: -\n"
+             f"⏰ Total Referrals: -\n"
+             f"\n"
+             f"⏰ Total Pretzels: -\n"
+             f"⏰ Redeemed: -\n"
+             f"⏰ Total Gifted: -",
+        reply_markup=HomeMenu.keyboard(),
+        parse_mode="HTML"
+    )
     response = requests.get(f"{settings.BASE_API_URL}/admin/overview").json()["data"]
-    await event.message.answer(
+    await msg.edit_text(
         text="📊 <b>Overview</b>\n"
              "\n"
              f"👥 Total users: {response['total_users']}\n"
@@ -111,7 +136,7 @@ async def overview(
              f"🥨 Total Pretzels: {response['total_pretzels']}\n"
              f"🥨 Redeemed: {response['redeemed_pretzels']}\n"
              f"🥨 Total Gifted: {response['gifted_pretzels']}",
-        reply_markup=HomeMenu.keyboard(),
+        reply_markup=AdminMenu.admin_menu(),
         parse_mode="HTML"
     )
 
@@ -174,7 +199,7 @@ async def user_data(
 
     await event.answer(
         text=response["message"],
-        reply_markup=HomeMenu.keyboard()
+        reply_markup=AdminMenu.admin_menu()
     )
 
 
@@ -281,8 +306,19 @@ async def lucky_draw(
 
         await event.answer(
             text=response["message"],
-            reply_markup=HomeMenu.keyboard()
+            reply_markup=AdminMenu.admin_menu()
         )
+
+
+@handle_error
+async def choose_rank(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await event.message.answer(
+        text="Choose a Rank:",
+        reply_markup=TopReferrersMenu.keyboard()
+    )
 
 
 @handle_error
@@ -295,6 +331,10 @@ async def weekly_referrers(
         text="⏱️ Loading may take up to 30 seconds!",
         cache_time=5
     )
+    await event.message.edit_text(
+        text="⏰ <b>Weekly Top Referrers Loading...</b>",
+        parse_mode="HTML"
+    )
 
     response = requests.get(
         url=f"{settings.BASE_API_URL}/admin/top_referrers"
@@ -302,14 +342,14 @@ async def weekly_referrers(
 
     text = ""
     for i, v in response["weekly_top"].items():
-        text += f"{i.zfill(2)} / {v['telegram_id']} / {v['reffered_friends']}\n"
+        text += f"{i.zfill(2)} / {v['telegram_id']} / {v['reffered_friends']}{f' / 👟' if v['on_rally'] else ''}\n"
 
-    await event.message.answer(
+    await event.message.edit_text(
         text="🏆 <b>Weekly Top Referrers</b>\n"
              "\n"
              "<b>Ranking / UserID / Friends Referred</b>\n"
              f"{text}",
-        reply_markup=TopReferrersMenu.keyboard(),
+        reply_markup=AdminMenu.admin_menu(),
         parse_mode="HTML"
     )
 
@@ -324,6 +364,10 @@ async def top_referrers(
         text="⏱️ Loading may take up to 30 seconds!",
         cache_time=5
     )
+    await event.message.edit_text(
+        text="⏰ <b>Top Referrers Loading...</b>",
+        parse_mode="HTML"
+    )
 
     response = requests.get(
         url=f"{settings.BASE_API_URL}/admin/top_referrers"
@@ -333,7 +377,7 @@ async def top_referrers(
     for i, v in response["top_referrers"].items():
         text += f"{v['telegram_id']} / {'@' + v['username'] if v['username'] else 'None'} / {v['reffered_friends']}\n"
 
-    await event.message.answer(
+    await event.message.edit_text(
         text="🏆 <b>Top Referrers</b>\n"
              "\n"
              "<b>UserID / Username / Friends Referred</b>\n"
@@ -341,6 +385,165 @@ async def top_referrers(
         reply_markup=AdminMenu.admin_menu(),
         parse_mode="HTML"
     )
+
+
+@handle_error
+async def welcome_gift(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.welcome_gift.set()
+    await event.message.answer(
+        text="Select the task you want to edit:",
+        reply_markup=ManageGiftMenu.keyboard()
+    )
+
+
+@handle_error
+async def retweeting_task(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.retweeting_task.set()
+    await event.message.answer(
+        text="Select the one of settings you want to change:",
+        reply_markup=RetweetingTaskEditMenu.keyboard()
+    )
+
+
+@handle_error
+async def retweeting_link(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.submit_link.set()
+    await event.message.answer(
+        text=f"Currect link - {bot_settings.RETWEETING_LINK}\n"
+             "\n"
+             "Submit the link:",
+        reply_markup=AdminMenu.admin_menu(),
+        disable_web_page_preview=True
+    )
+
+
+@handle_error
+async def set_link(
+        event: Message,
+        state: FSMContext
+) -> None:
+    if event.text[:14] != "https://x.com/":
+        return await event.answer(
+            text="<i>Invalid link, please submit again.</i>",
+            reply_markup=AdminMenu.admin_menu(),
+            parse_mode="HTML"
+        )
+    bot_settings.RETWEETING_LINK = event.text
+    await event.answer(
+        text="✅ The new link is set.",
+        reply_markup=AdminMenu.admin_menu()
+    )
+    await AdminStates.welcome_gift.set()
+
+
+@handle_error
+async def rally_settings(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    if event.from_user.id != 1125858430:
+        return await event.answer(
+            text="🚧 Currently Unavailable.",
+            show_alert=True
+        )
+
+    await AdminStates.rally_settings.set()
+    response = requests.get(
+        url=f"{settings.BASE_API_URL}/rally"
+    )
+    response_data = response.json()["data"]
+
+    await event.message.answer(
+        text=f"🏎️ <b>Rally Settings</b>\n"
+             f"\n"
+             f"🏁 <b>Round</b>: {response_data['active']['round']}\n"
+             f"🕒 <b>Start time</b>: {response_data['active']['start_time']}\n"
+             f"🕒 <b>End time</b>: {response_data['active']['end_time']}",
+        reply_markup=RallySettingsMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
+
+@handle_error
+async def new_rally(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+
+    pass
+
+
+@handle_error
+async def choose_round(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    await AdminStates.select_round.set()
+    await event.message.answer(
+        text="Select round: "
+    )
+
+@handle_error
+async def send_invitations(
+        event: Message,
+        state: FSMContext
+) -> None:
+    response = requests.get(
+        url=f"{settings.BASE_API_URL}/rally/{event.text}"
+    )
+    response_data = response.json()["data"]
+
+    if response.status_code == 200:
+        if not response_data["allowed_users"]:
+            return await event.answer(
+                text="Not support rallys without allowed users."
+            )
+
+        msg = await event.answer(
+            text=f"Round {event.text} with allowed users: {[f'{i}, ' for i in response_data['allowed_users']]}sending invitations..."
+        )
+
+        for i in response_data["allowed_users"]:
+            try:
+                await bot.send_message(
+                    chat_id=i,
+                    text=f"Are you ready for <b>Round {event.text}</b> of the <b>Top Referrals Rally</b>?\n"
+                         f"\n"
+                         f"🕒 <b>Start time</b>: {utils.from_timestamp(response_data['start_time'])}\n"
+                         f"🕒 <b>End time</b>: {utils.from_timestamp(response_data['end_time'])}\n"
+                         f"\n"
+                         f"<i>Click the button below to sign up</i> 👇👇",
+                    reply_markup=JoinRallyMenu.keyboard(
+                        user_id=i,
+                        round=event.text
+                    ),
+                    parse_mode="HTML"
+                )
+                status = "✅"
+            except:
+                status = "❌"
+
+            await event.answer(
+                text=f"{i}: {status}"
+            )
+
+        return await event.answer(
+            text=f"Invitations sent."
+        )
+
+    return await event.answer(
+        text=f"Error."
+    )
+
 
 
 @handle_error
@@ -361,11 +564,23 @@ async def cashier(
     except:
         pass
 
+    msg = await event.message.answer(
+        text="🏧 <b>Cashier Loading...</b>\n"
+             "\n"
+             f"⏰ Total Transfer: -\n"
+             f"⏰ This Month: -\n"
+             f"⏰ This Week: -\n"
+             f"\n"
+             f"💰 Balance: {balance}",
+        reply_markup=CashierMenu.keyboard(),
+        parse_mode="HTML"
+    )
+
     response = requests.get(
         url=f"{settings.BASE_API_URL}/admin/cashier_statistics"
     ).json()["data"]
 
-    await event.message.answer(
+    await msg.edit_text(
         text="🏧 <b>Cashier</b>\n"
              "\n"
              f"💸 Total Transfer: {response['total_transfer']:.1f} USDT\n"
@@ -782,9 +997,16 @@ def register(
         )
     )
     dp.register_callback_query_handler(
-        weekly_referrers,
+        choose_rank,
         Text(
             equals=AdminMenu.top_referrers_callback
+        ),
+        state=access_states
+    )
+    dp.register_callback_query_handler(
+        weekly_referrers,
+        Text(
+            equals=TopReferrersMenu.weekly_callback
         ),
         state=access_states
     )
@@ -794,6 +1016,56 @@ def register(
             equals=TopReferrersMenu.all_time_callback
         ),
         state=access_states
+    )
+    dp.register_callback_query_handler(
+        welcome_gift,
+        Text(
+            equals=AdminMenu.welcome_gift_callback
+        ),
+        state=access_states
+    )
+    dp.register_callback_query_handler(
+        retweeting_task,
+        Text(
+            equals=ManageGiftMenu.retweeting_task_callback
+        ),
+        state=AdminStates.welcome_gift
+    )
+    dp.register_callback_query_handler(
+        retweeting_link,
+        Text(
+            equals=RetweetingTaskEditMenu.url_button_callback
+        ),
+        state=AdminStates.retweeting_task
+    )
+    dp.register_message_handler(
+        set_link,
+        state=AdminStates.submit_link
+    )
+    dp.register_callback_query_handler(
+        rally_settings,
+        Text(
+            equals=AdminMenu.rally_settings_callback
+        ),
+        state=access_states
+    )
+    dp.register_callback_query_handler(
+        new_rally,
+        Text(
+            equals=RallySettingsMenu.new_rally_callback
+        ),
+        state=access_states
+    )
+    dp.register_callback_query_handler(
+        choose_round,
+        Text(
+            equals=RallySettingsMenu.send_invitations_callback
+        ),
+        state=access_states
+    )
+    dp.register_message_handler(
+        send_invitations,
+        state=AdminStates.select_round
     )
     dp.register_callback_query_handler(
         cashier,

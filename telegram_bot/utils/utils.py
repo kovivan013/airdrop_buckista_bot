@@ -1,5 +1,7 @@
 import hashlib
 import requests
+from datetime import datetime
+import pytz
 
 from decorators.decorators import handle_error
 from config import settings, bot
@@ -16,6 +18,18 @@ def hash(string: str) -> str:
         )
     )
     return hash.hexdigest()
+
+def from_timestamp(
+        timestamp: int,
+        timezone: str = "CET"
+) -> str:
+    utc_time = datetime.fromtimestamp(timestamp, pytz.UTC)
+    tz = pytz.timezone(timezone)
+    local_time = utc_time.astimezone(tz)
+    string = local_time.strftime("%b %d, %I %p ") + timezone
+
+    return string
+
 
 @handle_error
 async def accept_join_task(

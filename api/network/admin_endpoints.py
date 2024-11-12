@@ -22,7 +22,6 @@ from database.core import (
 )
 from common.dtos import (
     UserCreate,
-    # BalanceWithdraw,
     WithdrawalStatus,
     TransferToken
 )
@@ -30,14 +29,20 @@ from database.models.models import (
     Users,
     Withdrawals,
     Transactions,
-    PretzelTasks
+    PretzelTasks,
+    RallyUsers,
+    Rallys
 )
 from schemas.schemas import (
     BaseUser,
     BaseWithdrawal,
     BaseTransaction,
     BasePretzelTask,
-    PretzelRewards
+    PretzelRewards,
+    BaseRally
+)
+from .rally_endpoints import (
+    rally_settings
 )
 from services import exceptions
 from schemas.base import DataStructure
@@ -187,6 +192,29 @@ async def top_referrers(
     result.data["top_referrers"] = {}
 
     for i, v in zip(range(1, 26), weekly_top):
+        rally_data = await rally_settings(
+            request, session
+        )
+        participant = await session.get(
+            RallyUsers,
+            utils.encode_data(
+                {
+                    "user_id": v["telegram_id"],
+                    "round": rally_data.data["active"]["round"]
+                }
+            )
+        )
+
+        on_rally: bool = False
+
+        if participant:
+            on_rally = True
+
+        v.update(
+            {
+                "on_rally": on_rally
+            }
+        )
         result.data["weekly_top"].update(
             {
                 i: v

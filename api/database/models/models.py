@@ -7,6 +7,9 @@ from schemas.schemas import (
     BaseWithdrawal,
     BaseTransaction,
     BasePretzelTask,
+    BaseSettings,
+    BaseRally,
+    BaseRallyUser,
     BaseWorker
 )
 from sqlalchemy.orm import (
@@ -178,6 +181,88 @@ class Transactions(Base):
 
     def as_model(self) -> Union[BaseTransaction]:
         return BaseTransaction().model_validate(
+            self.as_dict()
+        )
+
+
+class Settings(Base):
+
+    key: Mapped[String] = mapped_column(
+        String,
+        primary_key=True,
+        index=True
+    )
+    value: Mapped[JSON] = mapped_column(
+        JSON,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BaseSettings]:
+        return BaseSettings().model_validate(
+            self.as_dict()
+        )
+
+
+class Rallys(Base):
+
+    round: Mapped[Integer] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+    admin_id: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    start_time: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    end_time: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    allowed_users: Mapped[ARRAY] = mapped_column(
+        ARRAY(BigInteger),
+        nullable=False
+    )
+    created_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    updated_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BaseRally]:
+        return BaseRally().model_validate(
+            self.as_dict()
+        )
+
+
+class RallyUsers(Base):
+
+    participant: Mapped[String] = mapped_column(
+        String,
+        primary_key=True,
+        index=True
+    )
+    round: Mapped[Integer] = mapped_column(
+        Integer,
+        nullable=False
+    )
+    sequence: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+    joined_at: Mapped[BigInteger] = mapped_column(
+        BigInteger,
+        nullable=False
+    )
+
+    def as_model(self) -> Union[BaseRallyUser]:
+        return BaseRallyUser().model_validate(
             self.as_dict()
         )
 

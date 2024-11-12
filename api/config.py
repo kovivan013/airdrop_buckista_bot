@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     password: str
 
     TRANSFERRING: bool = False
+    SIGN_KEY: str
     SERVER_HOST: str = "127.0.0.1"
     SERVER_PORT: int = 8000
 

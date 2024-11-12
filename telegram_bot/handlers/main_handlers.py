@@ -1,7 +1,8 @@
 import requests
+
 from aiogram import Dispatcher
 import aiohttp
-from config import bot, settings
+from config import bot, settings, bot_settings
 from utils import utils
 from aiogram.types import (
     Message,
@@ -35,7 +36,8 @@ from keyboards.keyboards import (
     JoinChannelTaskMenu,
     FollowTwitterTaskMenu,
     RetweetPostTaskMenu,
-    PretzelsMenu
+    PretzelsMenu,
+    JoinRallyMenu
 )
 from common.schemas import (
     BaseReferral,
@@ -138,8 +140,8 @@ async def tasks_list(
         text="🎯 <b>Complete Tasks & Earn Rewards!</b>\n"
              "\n"
              "💎 Get <b>0.1 USDT</b> for using our Web APP\n"
-             "💎 Get <b>0.1 USDT</b> for using our iOS APP\n"
-             "💎 Get <b>0.1 USDT</b> for using our Android APP\n"
+             # "💎 Get <b>0.1 USDT</b> for using our iOS APP\n"
+             # "💎 Get <b>0.1 USDT</b> for using our Android APP\n"
              "💎 Get <b>0.25 USDT</b> for each valid invitation",
         reply_markup=TasksListMenu.keyboard(),
         parse_mode="HTML"
@@ -334,7 +336,7 @@ async def welcome_gift_menu(
     await event.message.answer(
         text="💝 <b>Complete Tasks for Free Gifts!</b>\n"
              "\n"
-             "🥨 Get <b>1 Pretzel</b> by following Channel\n"
+             # "🥨 Get <b>1 Pretzel</b> by following Channel\n"
              # "🥨 Get <b>2 Pretzels</b> by following Twitter\n"
              "🥨 Get <b>2 Pretzels</b> by retweeting\n"
              # "🥨 Get <b>3 Pretzels</b> by following uPoY bot\n"
@@ -454,7 +456,7 @@ async def retweet_post_task(
              "\n"
              "Only 2 steps to complete the task:\n"
              "\n"
-             "1️⃣ <b>Comment</b>, <b>retweet</b>, and <b>pin</b> this <a href='https://x.com/mrbuckista/status/1850213719542014261'>tweet</a>.\n"
+             f"1️⃣ <b>Comment</b>, <b>retweet</b>, and <b>pin</b> this <a href='{bot_settings.RETWEETING_LINK}'>tweet</a>.\n"
              "2️⃣ <b>Submit</b> your <b>Twitter profile name</b>\n"
              "\n"
              "🥨 <i>You only get 1 chance to complete this task.</i>\n",
@@ -752,6 +754,46 @@ async def transfer_pretzels(
     await state.finish()
 
 
+async def join_rally(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    user_id, round = event.data.split("_")[:2]
+    response = requests.post(
+        url=f"{settings.BASE_API_URL}/user/{user_id}/join_rally?round={round}"
+    )
+    response_data = response.json()["data"]
+
+    if response.status_code == 200:
+        await event.answer(
+            text="🎉 Joined the rally! Keep it up!",
+            show_alert=True,
+        )
+
+    elif response.status_code == 403:
+        await event.answer(
+            text="🥨 You need 1 Pretzel to sign up.",
+            show_alert=True,
+        )
+
+    elif response.status_code == 406:
+        await event.answer(
+            text="🔚 The rally is over, please wait for the next round.",
+            show_alert=True,
+        )
+
+    elif response.status_code == 409:
+        await event.answer(
+            text="✅ You've signed up for the rally!",
+            show_alert=True,
+        )
+
+    else:
+        await event.answer(
+            text="🥨 You need 1 Pretzel to sign up.",
+            show_alert=True,
+        )
+
 def register(
         dp: Dispatcher
 ):
@@ -763,6 +805,13 @@ def register(
         home,
         Text(
             equals=HomeMenu.home_callback
+        ),
+        state=["*"]
+    )
+    dp.register_callback_query_handler(
+        join_rally,
+        Text(
+            endswith=JoinRallyMenu.join_rally_callback
         ),
         state=["*"]
     )
@@ -791,12 +840,12 @@ def register(
     #         equals=WelcomeGiftMenu.upoy_bot_callback
     #     )
     # )
-    dp.register_callback_query_handler(
-        join_channel_task,
-        Text(
-            equals=WelcomeGiftMenu.join_channel_callback
-        )
-    )
+    # dp.register_callback_query_handler(
+    #     join_channel_task,
+    #     Text(
+    #         equals=WelcomeGiftMenu.join_channel_callback
+    #     )
+    # )
     # dp.register_callback_query_handler(
     #     follow_twitter_task,
     #     Text(
@@ -882,22 +931,22 @@ def register(
             equals=TasksListMenu.web_app_callback
         )
     )
-    dp.register_callback_query_handler(
-        android_app_task,
-        Text(
-            equals=TasksListMenu.android_app_callback
-        )
-    )
+    # dp.register_callback_query_handler(
+    #     android_app_task,
+    #     Text(
+    #         equals=TasksListMenu.android_app_callback
+    #     )
+    # )
     dp.register_callback_query_handler(
         invite_friend,
         Text(
             TasksListMenu.invite_friend_callback
         )
     )
-    dp.register_callback_query_handler(
-        ios_app_task,
-        Text(
-            equals=TasksListMenu.ios_app_callback
-        )
-    )
+    # dp.register_callback_query_handler(
+    #     ios_app_task,
+    #     Text(
+    #         equals=TasksListMenu.ios_app_callback
+    #     )
+    # )
 

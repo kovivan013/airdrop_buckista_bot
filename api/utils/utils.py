@@ -1,12 +1,17 @@
+import pytz
+import jwt
+
 from datetime import datetime, timedelta
 from schemas.schemas import CryptoFactoryException
+from config import settings
 from uuid import uuid4
-import pytz
+from services import exceptions
+from fastapi import Request
 
 
 def timestamp() -> int:
     pst = pytz.timezone(
-        'Asia/Singapore'
+        'CET'
     )
     now = datetime.now(pst)
 
@@ -14,14 +19,16 @@ def timestamp() -> int:
         now.timestamp()
     )
 
+
 def _uuid() -> str:
     return str(
         uuid4()
     )
 
+
 def _today():
     pst = pytz.timezone(
-        'Asia/Singapore'
+        'CET'
     )
     now = datetime.now(pst)
     midnight = now.replace(
@@ -33,6 +40,7 @@ def _today():
 
     return timestamp
 
+
 def decode_exception(exc: str):
 
     return CryptoFactoryException(
@@ -40,21 +48,23 @@ def decode_exception(exc: str):
         message=f"{exc.split('] ')[1].replace('_', ' ').capitalize()}."
     )
 
+
 def to_date(
         timestamp: int
 ) -> str:
 
     pst = pytz.timezone(
-            'Asia/Singapore'
+            'CET'
         )
 
     return str(datetime.fromtimestamp(
         timestamp, pst
     ))
 
+
 def month_start() -> int:
     pst = pytz.timezone(
-        'Asia/Singapore'
+        'CET'
     )
     now = datetime.now(pst)
 
@@ -62,9 +72,10 @@ def month_start() -> int:
         now.year, now.month, 1
     ).timestamp())
 
+
 def week_start() -> int:
     pst = pytz.timezone(
-        'Asia/Singapore'
+        'CET'
     )
     now = datetime.now(pst)
 
@@ -76,3 +87,28 @@ def week_start() -> int:
         hour=0, minute=0, second=0, microsecond=0
     ).timestamp()
 )
+
+
+def collect_data(
+        cls,
+        token: str
+) -> dict:
+    try:
+        return jwt.decode(
+            token,
+            options={
+                "verify_signature": False
+            }
+        )
+    except:
+        raise exceptions.UnautorizedException
+
+
+def encode_data(
+        data: dict
+) -> str:
+    return jwt.encode(
+        data,
+        settings.SIGN_KEY
+    )
+

@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from services.errors_reporter import Reporter
 from services import exceptions
-
+from .rally_endpoints import get_rally
 from database.core import (
     core
 )
@@ -33,7 +33,9 @@ from database.models.models import (
     Withdrawals,
     PretzelTasks,
     Workers,
-    Transactions
+    Transactions,
+    Rallys,
+    RallyUsers
 )
 from schemas.schemas import (
     BaseUser,
@@ -41,7 +43,8 @@ from schemas.schemas import (
     BasePretzelTask,
     PretzelRewards,
     BaseWorker,
-    BaseTransaction
+    BaseTransaction,
+    BaseRallyUser
 )
 from services import exceptions
 from schemas.base import DataStructure
@@ -942,6 +945,127 @@ async def transfer_funds(
             "amount": withdrawal.amount
         }
     }
+    result._status = HTTPStatus.HTTP_200_OK
+
+    return result
+
+
+@user_router.post("/{telegram_id}/join_rally")
+async def join_rally(
+        telegram_id: int,
+        round: int,
+        request: Request,
+        session: AsyncSession = Depends(
+            core.create_sa_session
+        )
+) -> Union[DataStructure]:
+    result = DataStructure()
+
+    user = await session.get(
+        Users,
+        telegram_id
+    )
+
+    if not user:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="User not found"
+        )._report()
+
+    rally = await session.get(
+        Rallys,
+        round
+    )
+
+    if not rally:
+        return await Reporter(
+            exception=exceptions.ItemNotFound,
+            message="Rally round not found."
+        )._report()
+
+    if rally.end_time <= utils.timestamp():
+        return await Reporter(
+            exception=exceptions.NotAcceptable,
+            message="Rally is over."
+        )._report()
+
+    elif rally.start_time > utils.timestamp():
+        return await Reporter(
+            exception=exceptions.NotAcceptable,
+            message="Rally hasn't started yet."
+        )._report()
+
+    elif rally.allowed_users and user.telegram_id not in rally.allowed_users:
+        return await Reporter(
+            exception=exceptions.NotAcceptable,
+            message="Unable to join this rally."
+        )._report()
+
+    elif user.pretzels["balance"] < 1:
+        return await Reporter(
+            exception=exceptions.NoAccess,
+            message="Insufficient Pretzel balance."
+        )._report()
+
+    join_token = utils.encode_data(
+        data={
+            "user_id": user.telegram_id,
+            "round": round
+        }
+    )
+
+    participant = await session.get(
+        RallyUsers,
+        join_token
+    )
+
+    if participant:
+        return await Reporter(
+            exception=exceptions.ItemExists,
+            message="Already signed up to the rally."
+        )._report()
+
+    user.pretzels["balance"] -= 1
+
+    await session.execute(
+        update(
+            Users
+        ).filter(
+            Users.telegram_id == user.telegram_id
+        ).values(
+            {
+                "pretzels": user.pretzels
+            }
+        )
+    )
+
+    sequence = await session.execute(
+        select(
+            RallyUsers
+        ).filter(
+            RallyUsers.round == round
+        ).order_by(
+            RallyUsers.round.desc()
+        )
+    )
+    new_sequence = sequence.scalars().first().sequence or 0 + 1
+
+    data_scheme = BaseRallyUser(
+        participant=join_token,
+        round=round,
+        sequence=new_sequence,
+        joined_at=utils.timestamp()
+    )
+
+    session.add(
+        RallyUsers(
+            **data_scheme.model_dump()
+        )
+    )
+    await session.commit()
+    await session.close()
+
+    result.data = data_scheme.model_dump()
     result._status = HTTPStatus.HTTP_200_OK
 
     return result

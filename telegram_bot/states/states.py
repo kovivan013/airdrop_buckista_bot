@@ -15,6 +15,11 @@ class AdminStates(StatesGroup):
     main_wallet = State()
     change_wallet = State()
     invoice_amount = State()
+    welcome_gift = State()
+    retweeting_task = State()
+    submit_link = State()
+    rally_settings = State()
+    select_round = State()
 
 
 class ReferralStates(StatesGroup):

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, List
+from typing import Dict, List, Any
 
 
 class Pretzels(BaseModel):
@@ -67,7 +67,7 @@ class FollowTwitterTask(BaseModel):
 class RetweetPostTask(BaseModel):
 
     title: str = "Retweeting"
-    reward: int = 2
+    reward: int = 1
 
 
 class BasePretzelTask(BaseModel):
@@ -88,6 +88,37 @@ class PretzelRewards(BaseModel):
     join_channel: JoinChannelTask = JoinChannelTask()
     follow_twitter: FollowTwitterTask = FollowTwitterTask()
     retweet_post: RetweetPostTask = RetweetPostTask()
+
+
+class BaseSettings(BaseModel):
+
+    key: str = ""
+    value: Dict[str, Any] = {}
+
+
+class BaseRally(BaseModel):
+
+    round: int = 0
+    admin_id: int = 0
+    start_time: int = 0
+    end_time: int = 0
+    allowed_users: list[int] = []
+    created_at: int = 0
+    updated_at: int = 0
+
+
+class BaseRallyUser(BaseModel):
+
+    participant: str = ""
+    round: int = 0
+    sequence: int = 0
+    joined_at: int = 0
+
+
+class RallyStatus(BaseModel):
+
+    in_progress: str = "in_progress"
+    ended: str = "ended"
 
 
 class BaseWorker(BaseModel):

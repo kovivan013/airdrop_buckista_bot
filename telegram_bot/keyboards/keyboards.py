@@ -4,6 +4,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     KeyboardButton
 )
+from config import bot_settings
 from typing import Union
 
 
@@ -128,10 +129,10 @@ class WelcomeGiftMenu(DescriptionMenu):
             #     text=cls.upoy_bot,
             #     callback_data=cls.upoy_bot_callback
             # ),
-            InlineKeyboardButton(
-                text=cls.join_channel,
-                callback_data=cls.join_channel_callback
-            ),
+            # InlineKeyboardButton(
+            #     text=cls.join_channel,
+            #     callback_data=cls.join_channel_callback
+            # ),
             # InlineKeyboardButton(
             #     text=cls.follow_twitter,
             #     callback_data=cls.follow_twitter_callback
@@ -181,14 +182,14 @@ class TasksListMenu(Base):
                 text=cls.web_app,
                 callback_data=cls.web_app_callback
             ),
-            InlineKeyboardButton(
-                text=cls.android_app,
-                callback_data=cls.android_app_callback
-            ),
-            InlineKeyboardButton(
-                text=cls.ios_app,
-                callback_data=cls.ios_app_callback
-            ),
+            # InlineKeyboardButton(
+            #     text=cls.android_app,
+            #     callback_data=cls.android_app_callback
+            # ),
+            # InlineKeyboardButton(
+            #     text=cls.ios_app,
+            #     callback_data=cls.ios_app_callback
+            # ),
             InlineKeyboardButton(
                 text=cls.invite_friend,
                 callback_data=cls.invite_friend_callback
@@ -363,7 +364,7 @@ class RetweetPostTaskMenu(Base):
     retweet_post: str = "Retweet this Tweet"
     submit_retweet_name: str = "Submit my Profile Name"
 
-    retweet_link: str = "https://x.com/mrbuckista/status/1850213719542014261"
+    retweet_link: str = "https://x.com/mrbuckista/status/1853669490195939766"
     submit_retweet_name_callback: str = "submit_profile_name_callback"
 
     @classmethod
@@ -375,7 +376,7 @@ class RetweetPostTaskMenu(Base):
         keyboard.add(
             InlineKeyboardButton(
                 text=cls.retweet_post,
-                url=cls.retweet_link
+                url=bot_settings.RETWEETING_LINK
             ),
             InlineKeyboardButton(
                 text=cls.submit_retweet_name,
@@ -499,6 +500,8 @@ class AdminMenu(Base):
     user_data: str = "User Data"
     lucky_draw: str = "Lucky Draw"
     top_referrers: str = "Top Referrers"
+    rally_settings: str = "Rally Settings"
+    welcome_gift: str = "Welcome Gift"
     cashier: str = "Cashier"
     resend_withdrawal: str = "📮 Resend Withdrawal"
 
@@ -507,6 +510,8 @@ class AdminMenu(Base):
     user_data_callback: str = "user_data_callback"
     lucky_draw_callback: str = "lucky_draw_callback"
     top_referrers_callback: str = "top_referrers_callback"
+    rally_settings_callback: str = "rally_settings_callback"
+    welcome_gift_callback: str = "welcome_gift_callback"
     cashier_callback: str = "cashier_callback"
 
     @classmethod
@@ -529,6 +534,14 @@ class AdminMenu(Base):
             InlineKeyboardButton(
                 text=cls.top_referrers,
                 callback_data=cls.top_referrers_callback
+            ),
+            InlineKeyboardButton(
+                text=cls.rally_settings,
+                callback_data=cls.rally_settings_callback
+            ),
+            InlineKeyboardButton(
+                text=cls.welcome_gift,
+                callback_data=cls.welcome_gift_callback
             ),
             InlineKeyboardButton(
                 text=cls.cashier,
@@ -605,8 +618,10 @@ class AdminMenu(Base):
 
 class TopReferrersMenu:
 
-    all_time: str = "All Time Records"
+    weekly: str = "Weekly"
+    all_time: str = "All-Time"
 
+    weekly_callback: str = "weekly_callback"
     all_time_callback: str = "all_time_callback"
 
     @classmethod
@@ -614,6 +629,10 @@ class TopReferrersMenu:
         keyboard = default_inline_keyboard()
 
         keyboard.add(
+            InlineKeyboardButton(
+                text=cls.weekly,
+                callback_data=cls.weekly_callback
+            ),
             InlineKeyboardButton(
                 text=cls.all_time,
                 callback_data=cls.all_time_callback
@@ -683,6 +702,96 @@ class CashierMenu(AdminMenu):
             InlineKeyboardButton(
                 text=cls.admin,
                 callback_data=cls.admin_callback
+            )
+        )
+
+        return keyboard
+
+
+class ManageGiftMenu:
+
+    retweeting_task: str = "Retweeting"
+
+    retweeting_task_callback: str = "retweeting_task_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.retweeting_task,
+                callback_data=cls.retweeting_task_callback
+            )
+        )
+
+        return keyboard
+
+
+class RetweetingTaskEditMenu(AdminMenu):
+
+    url_button: str = "URL-Button"
+
+    url_button_callback: str = "url_button_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.url_button,
+                callback_data=cls.url_button_callback
+            )
+        )
+
+        return keyboard
+
+
+class RallySettingsMenu:
+
+    new_rally: str = "New Rally"
+    send_invitations: str = "Send Invitations"
+
+    new_rally_callback: str = "new_rally_callback"
+    send_invitations_callback: str = "send_invitations_callback"
+
+    @classmethod
+    def keyboard(cls) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.new_rally,
+                callback_data=cls.new_rally_callback
+            ),
+            InlineKeyboardButton(
+                text=cls.send_invitations,
+                callback_data=cls.send_invitations_callback
+            )
+        )
+
+        return keyboard
+
+
+class JoinRallyMenu:
+
+    join_rally: str = "Join Rally"
+
+    join_rally_callback: str = "join_rally"
+
+    @classmethod
+    def keyboard(
+            cls,
+            user_id: str,
+            round: str
+    ) -> Union[InlineKeyboardMarkup]:
+        keyboard = default_inline_keyboard()
+
+        keyboard.add(
+            InlineKeyboardButton(
+                text=cls.join_rally,
+                callback_data=f"{user_id}_{round}_{cls.join_rally_callback}"
             )
         )
 
