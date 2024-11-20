@@ -9,9 +9,11 @@ from services import exceptions
 from fastapi import Request
 
 
-def timestamp() -> int:
+def timestamp(
+        tz: str = "Asia/Singapore"
+) -> int:
     pst = pytz.timezone(
-        'CET'
+        tz
     )
     now = datetime.now(pst)
 
@@ -26,9 +28,11 @@ def _uuid() -> str:
     )
 
 
-def _today():
+def _today(
+        tz: str = "Asia/Singapore"
+):
     pst = pytz.timezone(
-        'CET'
+        tz
     )
     now = datetime.now(pst)
     midnight = now.replace(
@@ -50,11 +54,12 @@ def decode_exception(exc: str):
 
 
 def to_date(
-        timestamp: int
+        timestamp: int,
+        tz: str = "Asia/Singapore"
 ) -> str:
 
     pst = pytz.timezone(
-            'CET'
+            tz
         )
 
     return str(datetime.fromtimestamp(
@@ -62,9 +67,11 @@ def to_date(
     ))
 
 
-def month_start() -> int:
+def month_start(
+        tz: str = "Asia/Singapore"
+) -> int:
     pst = pytz.timezone(
-        'CET'
+        tz
     )
     now = datetime.now(pst)
 
@@ -73,9 +80,11 @@ def month_start() -> int:
     ).timestamp())
 
 
-def week_start() -> int:
+def week_start(
+        tz: str = "Asia/Singapore"
+) -> int:
     pst = pytz.timezone(
-        'CET'
+        tz
     )
     now = datetime.now(pst)
 

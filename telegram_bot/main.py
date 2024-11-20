@@ -3,10 +3,12 @@ import random
 import requests
 import asyncio
 from keyboards.keyboards import WithdrawMenu, HomeMenu
+from utils.utils import load_settings
 from config import dp, settings, bot
 from handlers.events import register_events
 
 
+load_settings()
 register_events()
 
 async def on_startup(_) -> None:

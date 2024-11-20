@@ -983,6 +983,24 @@ async def join_rally(
             message="Rally round not found."
         )._report()
 
+    join_token = utils.encode_data(
+        data={
+            "user_id": user.telegram_id,
+            "round": round
+        }
+    )
+
+    participant = await session.get(
+        RallyUsers,
+        join_token
+    )
+
+    if participant:
+        return await Reporter(
+            exception=exceptions.ItemExists,
+            message="Already signed up to the rally."
+        )._report()
+
     if rally.end_time <= utils.timestamp():
         return await Reporter(
             exception=exceptions.NotAcceptable,
@@ -1007,24 +1025,6 @@ async def join_rally(
             message="Insufficient Pretzel balance."
         )._report()
 
-    join_token = utils.encode_data(
-        data={
-            "user_id": user.telegram_id,
-            "round": round
-        }
-    )
-
-    participant = await session.get(
-        RallyUsers,
-        join_token
-    )
-
-    if participant:
-        return await Reporter(
-            exception=exceptions.ItemExists,
-            message="Already signed up to the rally."
-        )._report()
-
     user.pretzels["balance"] -= 1
 
     await session.execute(
@@ -1045,10 +1045,13 @@ async def join_rally(
         ).filter(
             RallyUsers.round == round
         ).order_by(
-            RallyUsers.round.desc()
+            RallyUsers.sequence.desc()
         )
     )
-    new_sequence = sequence.scalars().first().sequence or 0 + 1
+    new_sequence: int = 1
+
+    if j := sequence.scalars().first():
+        new_sequence = (j.sequence or 0) + 1
 
     data_scheme = BaseRallyUser(
         participant=join_token,

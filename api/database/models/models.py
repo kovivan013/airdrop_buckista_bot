@@ -205,8 +205,8 @@ class Settings(Base):
 
 class Rallys(Base):
 
-    round: Mapped[Integer] = mapped_column(
-        Integer,
+    round: Mapped[BigInteger] = mapped_column(
+        BigInteger,
         primary_key=True,
         index=True
     )
@@ -248,8 +248,8 @@ class RallyUsers(Base):
         primary_key=True,
         index=True
     )
-    round: Mapped[Integer] = mapped_column(
-        Integer,
+    round: Mapped[BigInteger] = mapped_column(
+        BigInteger,
         nullable=False
     )
     sequence: Mapped[BigInteger] = mapped_column(

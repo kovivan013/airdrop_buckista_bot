@@ -112,7 +112,7 @@ async def get_rally(
 
     status = RallyStatus().in_progress
 
-    if rally.end_time >= utils.timestamp():
+    if rally.end_time <= utils.timestamp():
         status = RallyStatus().ended
 
     await session.close()
@@ -155,7 +155,7 @@ async def new_rally(
             message="Start time must be greater than current time."
         )._report()
 
-    if parameters.end_time <= parameters.start_time:
+    elif parameters.end_time <= parameters.start_time:
         return await Reporter(
             exception=exceptions.ValidationException,
             message="Start time must be less than end time."
@@ -172,6 +172,12 @@ async def new_rally(
 
     if not active_round:
         active_round = BaseRally()
+
+    if active_round.end_time > utils.timestamp():
+        return await Reporter(
+            exception=exceptions.ValidationException,
+            message="The active round must be finished to create the new one."
+        )._report()
 
     unique_users = list(set(
         parameters.allowed_users

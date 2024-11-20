@@ -1,10 +1,11 @@
 import hashlib
 import requests
+import jwt
 from datetime import datetime
 import pytz
 
 from decorators.decorators import handle_error
-from config import settings, bot
+from config import settings, bot, bot_settings
 from keyboards.keyboards import HomeMenu
 from aiogram.types import Message
 
@@ -29,6 +30,56 @@ def from_timestamp(
     string = local_time.strftime("%b %d, %I %p ") + timezone
 
     return string
+
+def encode_data(
+        data: dict
+) -> str:
+    return jwt.encode(
+        data,
+        settings.SIGN_KEY
+    )
+
+def load_settings() -> dict:
+    bot_hash = encode_data(
+        {
+            "network": settings.BOTNET
+        }
+    )
+    response = requests.get(
+        url=f"{settings.BASE_API_URL}/settings/{bot_hash}"
+    )
+
+    if response.status_code == 200:
+        for i, v in response.json()["data"].items():
+            setattr(
+                bot_settings,
+                i, v
+            )
+
+    return response.json()
+
+
+def update_settings(
+        data: dict
+) -> dict:
+    bot_hash = encode_data(
+        {
+            "network": settings.BOTNET
+        }
+    )
+    response = requests.patch(
+        url=f"{settings.BASE_API_URL}/settings/{bot_hash}",
+        json=data
+    )
+
+    if response.status_code == 200:
+        for i, v in response.json()["data"].items():
+            setattr(
+                bot_settings,
+                i, v
+            )
+
+    return response.json()
 
 
 @handle_error

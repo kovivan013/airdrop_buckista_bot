@@ -437,7 +437,11 @@ async def set_link(
             reply_markup=AdminMenu.admin_menu(),
             parse_mode="HTML"
         )
-    bot_settings.RETWEETING_LINK = event.text
+    utils.update_settings(
+        {
+            "RETWEETING_LINK": event.text
+        }
+    )
     await event.answer(
         text="✅ The new link is set.",
         reply_markup=AdminMenu.admin_menu()
@@ -466,8 +470,8 @@ async def rally_settings(
         text=f"🏎️ <b>Rally Settings</b>\n"
              f"\n"
              f"🏁 <b>Round</b>: {response_data['active']['round']}\n"
-             f"🕒 <b>Start time</b>: {response_data['active']['start_time']}\n"
-             f"🕒 <b>End time</b>: {response_data['active']['end_time']}",
+             f"🕒 <b>Start time</b>: {utils.from_timestamp(response_data['active']['start_time'])}\n"
+             f"🕒 <b>End time</b>: {utils.from_timestamp(response_data['active']['end_time'])}",
         reply_markup=RallySettingsMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -509,7 +513,7 @@ async def send_invitations(
             )
 
         msg = await event.answer(
-            text=f"Round {event.text} with allowed users: {[f'{i}, ' for i in response_data['allowed_users']]}sending invitations..."
+            text=f"Round {event.text} with allowed users: {[f'{i}, ' for i in response_data['allowed_users']]} sending invitations..."
         )
 
         for i in response_data["allowed_users"]:

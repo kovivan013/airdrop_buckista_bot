@@ -192,6 +192,10 @@ async def submit_referral(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
+    return await event.answer(
+        text="🚧 Under maintenance, try again later!",
+        show_alert=True
+    )
     await ReferralStates.submit_referral.set()
     await event.message.answer_photo(
         photo=open("images/refcode.jpg", "rb"),
@@ -210,6 +214,7 @@ async def check_referral(
         event: Message,
         state: FSMContext
 ) -> None:
+    return
     await ReferralStates.checked_code.set()
     response = requests.get(
             f"https://rds-service.bio-matrix.com/redeemReferCode/{event.text}"
@@ -338,7 +343,7 @@ async def welcome_gift_menu(
              "\n"
              # "🥨 Get <b>1 Pretzel</b> by following Channel\n"
              # "🥨 Get <b>2 Pretzels</b> by following Twitter\n"
-             "🥨 Get <b>2 Pretzels</b> by retweeting\n"
+             "🥨 Get <b>1 Pretzel</b> by retweeting\n"
              # "🥨 Get <b>3 Pretzels</b> by following uPoY bot\n"
              "\n"
              "✍️ <i>What are Pretzels used for?</i>\n"
@@ -765,33 +770,33 @@ async def join_rally(
     response_data = response.json()["data"]
 
     if response.status_code == 200:
-        await event.answer(
-            text="🎉 Joined the rally! Keep it up!",
-            show_alert=True,
+        await event.message.answer(
+            text="🎉<b> Joined the rally! Keep it up!</b>",
+            parse_mode="HTML"
         )
 
     elif response.status_code == 403:
-        await event.answer(
-            text="🥨 You need 1 Pretzel to sign up.",
-            show_alert=True,
+        await event.message.answer(
+            text="🥨 <b>You need 1 Pretzel to sign up.</b>",
+            parse_mode="HTML"
         )
 
     elif response.status_code == 406:
-        await event.answer(
-            text="🔚 The rally is over, please wait for the next round.",
-            show_alert=True,
+        await event.message.answer(
+            text="🔚 <b>The rally is over, please wait for the next round.</b>",
+            parse_mode="HTML"
         )
 
     elif response.status_code == 409:
-        await event.answer(
-            text="✅ You've signed up for the rally!",
-            show_alert=True,
+        await event.message.answer(
+            text="✅ <b>You've signed up for the rally!</b>",
+            parse_mode="HTML"
         )
 
     else:
-        await event.answer(
-            text="🥨 You need 1 Pretzel to sign up.",
-            show_alert=True,
+        await event.message.answer(
+            text=f"❌ <b>Error. {response_data['message']}</b>",
+            parse_mode="HTML"
         )
 
 def register(
