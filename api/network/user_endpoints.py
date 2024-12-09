@@ -363,7 +363,7 @@ async def complete_task(
 
             if referrer:
                 referrer.balance += Decimal(
-                    0.25
+                    0.1
                 )
                 reward = True
                 referrer.referred_friends = referrer.referred_friends + [telegram_id]
@@ -677,6 +677,17 @@ async def withdraw_balance(
             message="User not found"
         )._report()
 
+    withdrawal = await session.get(
+        Withdrawals,
+        user.current_withdrawal
+    )
+
+    if withdrawal:
+        return await Reporter(
+            exception=exceptions.NoAccess,
+            message="Cannot submit a new withdrawal request until your latest one has been processed."
+        )._report()
+
     if user.balance < 1.2:
         return await Reporter(
             exception=exceptions.NotAcceptable,
@@ -689,10 +700,17 @@ async def withdraw_balance(
             message="To withdraw funds you need at least 3 pretzels."
         )._report()
 
+    if user.balance > 30:
+        amount = 30
+    else:
+        amount = float(
+            user.balance
+        )
+
     data_scheme = BaseWithdrawal(
         id=utils._uuid(),
         user_id=telegram_id,
-        amount=float(user.balance),
+        amount=amount,
         created_at=utils.timestamp()
     )
 
@@ -717,7 +735,9 @@ async def withdraw_balance(
         )
     )
 
-    user.balance = 0
+    user.balance -= Decimal(
+        amount
+    )
     user.current_withdrawal = data_scheme.id
 
     await session.commit()

@@ -503,6 +503,7 @@ class AdminMenu(Base):
     rally_settings: str = "Rally Settings"
     welcome_gift: str = "Welcome Gift"
     cashier: str = "Cashier"
+    ban_user: str = "⚖️ Ban User"
     resend_withdrawal: str = "📮 Resend Withdrawal"
 
     admin_callback: str = "admin_callback"
@@ -580,6 +581,10 @@ class AdminMenu(Base):
         )
 
         keyboard.add(
+            InlineKeyboardButton(
+                text=cls.ban_user,
+                callback_data=f"{user_id}_admin_ban"
+            ),
             InlineKeyboardButton(
                 text=cls.resend_withdrawal,
                 callback_data=f"{user_id}_admin_resend"

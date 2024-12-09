@@ -8,6 +8,7 @@ class Pretzels(BaseModel):
     redeemed: int = 0
     gifted: int = 0
 
+
 class BaseUser(BaseModel):
 
     telegram_id: int = 0

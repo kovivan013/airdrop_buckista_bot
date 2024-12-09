@@ -204,6 +204,36 @@ async def user_data(
 
 
 @handle_error
+async def ban_user(
+        event: CallbackQuery,
+        state: FSMContext
+) -> None:
+    user_id = int(event.data[:-10])
+
+    if user_id == event.from_user.id:
+        return await event.answer(
+            text="⛔️ You can't ban yourself.",
+            show_alert=True
+        )
+
+    if user_id in bot_settings.BANNED_USERS:
+        return await event.answer(
+            text="⛔️ The user has been already banned.",
+            show_alert=True
+        )
+
+    utils.update_settings(
+        {
+            "BANNED_USERS": [*bot_settings.BANNED_USERS, user_id]
+        }
+    )
+    await event.answer(
+        text="✅ User successfully banned.",
+        show_alert=True
+    )
+
+
+@handle_error
 async def resend_withdrawal(
         event: CallbackQuery,
         state: FSMContext
@@ -958,6 +988,13 @@ def register(
         resend_withdrawal,
         Text(
             endswith="_admin_resend"
+        ),
+        state=AdminStates.user_data
+    )
+    dp.register_callback_query_handler(
+        ban_user,
+        Text(
+            endswith="_admin_ban"
         ),
         state=AdminStates.user_data
     )

@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 class BotSettings:
 
     RETWEETING_LINK: str = "https://x.com/mrbuckista/status/1853669490195939766"
+    BANNED_USERS: list = []
 
 
 settings = Settings()

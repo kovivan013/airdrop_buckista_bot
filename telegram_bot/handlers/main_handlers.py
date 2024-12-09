@@ -61,15 +61,14 @@ async def home(
                 "🔹 <b>Task Reward</b>\n"
                 "🔸 Unlimited Prize Pool\n"
                 "🔸 0.1 USDT for using APP + up to 100 POY\n"
-                "🔸 0.25 USDT for each valid invitation\n"
+                "🔸 0.1 USDT for each valid invitation\n"
                 "\n"
-                "🔹 <b>Lucky Draw</b>\n"
+                "🔹 <b>Top Referrer Rally</b>\n"
                 "🔸 Monthly\n"
-                "🔸 500 USDT in prizes\n"
-                "🔸 100 random winners\n"
+                "🔸 20 winners\n"
                 "\n"
-                "📅 <b>End Date</b>: 31 December 2024\n"
-                "🚀 <b>Distribution Time</b>: Within 7 business days\n"
+                "📅 <b>End Date</b>: 31 Dec 2024\n"
+                "🚀 <b>Payout</b>: 7 business days\n"
                 "\n"
                 "==============================\n"
                 "⬇️ <i>Click <b>BioMatrix Airdrop</b> for tasks</i>\n"
@@ -112,15 +111,14 @@ async def start(
                 "🔹 <b>Task Reward</b>\n"
                 "🔸 Unlimited Prize Pool\n"
                 "🔸 0.1 USDT for using APP + up to 100 POY\n"
-                "🔸 0.25 USDT for each valid invitation\n"
+                "🔸 0.1 USDT for each valid invitation\n"
                 "\n"
-                "🔹 <b>Lucky Draw</b>\n"
+                "🔹 <b>Top Referrer Rally</b>\n"
                 "🔸 Monthly\n"
-                "🔸 500 USDT in prizes\n"
-                "🔸 100 random winners\n"
+                "🔸 20 winners\n"
                 "\n"
-                "📅 <b>End Date</b>: 31 December 2024\n"
-                "🚀 <b>Distribution Time</b>: Within 7 business days\n"
+                "📅 <b>End Date</b>: 31 Dec 2024\n"
+                "🚀 <b>Payout</b>: 7 business days\n"
                 "\n"
                 "==============================\n"
                 "⬇️ <i>Click <b>BioMatrix Airdrop</b> for tasks</i>\n"
@@ -142,7 +140,7 @@ async def tasks_list(
              "💎 Get <b>0.1 USDT</b> for using our Web APP\n"
              # "💎 Get <b>0.1 USDT</b> for using our iOS APP\n"
              # "💎 Get <b>0.1 USDT</b> for using our Android APP\n"
-             "💎 Get <b>0.25 USDT</b> for each valid invitation",
+             "💎 Get <b>0.1 USDT</b> for each valid invitation",
         reply_markup=TasksListMenu.keyboard(),
         parse_mode="HTML"
     )
@@ -192,10 +190,10 @@ async def submit_referral(
         event: CallbackQuery,
         state: FSMContext
 ) -> None:
-    return await event.answer(
-        text="🚧 Under maintenance, try again later!",
-        show_alert=True
-    )
+    # return await event.answer(
+    #     text="🚧 Under maintenance, try again later!",
+    #     show_alert=True
+    # )
     await ReferralStates.submit_referral.set()
     await event.message.answer_photo(
         photo=open("images/refcode.jpg", "rb"),
@@ -214,7 +212,7 @@ async def check_referral(
         event: Message,
         state: FSMContext
 ) -> None:
-    return
+    # return
     await ReferralStates.checked_code.set()
     response = requests.get(
             f"https://rds-service.bio-matrix.com/redeemReferCode/{event.text}"
@@ -248,7 +246,7 @@ async def check_referral(
                                  "\n"
                                  "👤 A new user has registered using your referral link.\n"
                                  "\n"
-                                 "💸 You received a reward of 0.25 USDT\n",
+                                 "💸 You received a reward of 0.1 USDT\n",
                             parse_mode="HTML"
                         )
                     except:
@@ -497,7 +495,7 @@ async def request_pretzels(
     automated_tasks: list = ["join_channel"]
 
     async with state.proxy() as data:
-        task =  data["task"]
+        task = data["task"]
 
         if task in automated_tasks:
             payload = task
@@ -650,7 +648,7 @@ async def invite_friend(
         url=f"{settings.BASE_API_URL}/user/{event.from_user.id}"
     ).json()["data"]
     await event.message.answer(
-        text="🎉 Invite your friends to join our bot and earn rewards! When your friends claim the airdrop, you will receive a reward of <b>0.25 USDT</b>.\n"
+        text="🎉 Invite your friends to join our bot and earn rewards! When your friends claim the airdrop, you will receive a reward of <b>0.1 USDT</b>.\n"
              "\n"
              f"🔗 <b>Your Referral Link</b>: https://t.me/officialMrBuckista_bot?start={event.from_user.id}\n"
              f"👥 <b>Friends Referred</b>: {len(response['referred_friends'])}\n"

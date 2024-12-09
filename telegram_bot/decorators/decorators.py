@@ -1,6 +1,6 @@
 import requests
 
-from config import settings, dp
+from config import settings, dp, bot, bot_settings
 from functools import wraps
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.types import Message, CallbackQuery
@@ -27,6 +27,15 @@ def handle_error(func: Callable) -> Callable:
 
     @wraps(func)
     async def wrapper(*args, **kwargs) -> Any:
+        message: Message = args[0]
+
+        if message.from_user.id in bot_settings.BANNED_USERS:
+            return await bot.send_message(
+                chat_id=message.from_user.id,
+                text="<b>Bot is unavailable.</b>",
+                parse_mode="HTML"
+            )
+
         try:
             return await func(
                 *args, **kwargs
@@ -121,3 +130,26 @@ def check_payload(func: Callable) -> Callable:
         )
 
     return wrapper
+
+
+def check_banned(func: Callable) -> Callable:
+
+    @wraps(func)
+    async def wrapper(
+            *args, **kwargs
+    ) -> Any:
+        message: Message = args[0]
+
+        if message.from_user.id in settings.BANNED_USERS:
+            return await bot.send_message(
+                chat_id=message.from_user.id,
+                text="<b>Bot is unavailable.</b>",
+                parse_mode="HTML"
+            )
+        return await func(
+            *args, **kwargs
+        )
+
+    return wrapper
+
+
